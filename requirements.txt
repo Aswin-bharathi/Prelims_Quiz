@@ -1,0 +1,6 @@
+Flask>=2.3.0
+mysql-connector-python>=8.0.33
+pandas>=2.0.0
+python-docx>=0.8.11
+requests>=2.31.0
+Werkzeug>=2.3.0

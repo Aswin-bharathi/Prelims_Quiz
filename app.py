@@ -23,7 +23,7 @@ logging.basicConfig(level=logging.DEBUG)
 db_config = {
     'host': 'localhost',
     'user': 'root',
-    'password': '',
+    'password': 'aswin2772',
     'database': 'quiz_db'
 }
 
@@ -673,7 +673,7 @@ def track_tab_switch():
     return jsonify({'auto_submit': False})
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT", 5001))
     url = f"http://localhost:{port}/admin_login"
     def open_browser():
         webbrowser.open(url)
