@@ -11,11 +11,11 @@
         ('Results', stats.results, 'bg-amber-500', 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'),
     ] %}
     {% for label, value, color, icon in cards %}
-    <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm hover:shadow-md transition">
+    <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm hover:shadow-md transition" >
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-sm font-medium text-slate-500 dark:text-slate-400">{{ label }}</p>
-                <p class="text-3xl font-bold text-slate-800 dark:text-white mt-1">{{ value }}</p>
+                <p class="text-3xl font-bold text-slate-800 dark:text-white mt-1 ">{{ value }}</p>
             </div>
             <div class="{{ color }} w-12 h-12 rounded-xl flex items-center justify-center text-white">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ icon }}"></path></svg>
@@ -31,19 +31,19 @@
             <h3 class="text-lg font-bold text-slate-800 dark:text-white">Quick Actions</h3>
         </div>
         <div class="grid grid-cols-2 gap-3">
-            <a href="{{ url_for('admin.quiz_types_create') }}" class="p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-brand-300 dark:hover:border-brand-500 hover:bg-brand-50 dark:hover:bg-brand-950/30 transition text-center text-slate-800 dark:text-slate-200">
+            <a href="{{ url_for('admin.quiz_types_create') }}" class="p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-brand-300 dark:hover:border-brand-500 hover:bg-brand-50 dark:hover:bg-brand-950/30 transition text-center text-slate-800 dark:text-slate-200 dark:hover:text-black">
                 <span class="text-2xl">➕</span>
                 <p class="text-sm font-semibold mt-2">New Quiz Type</p>
             </a>
-            <a href="{{ url_for('admin.upload_teams') }}" class="p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-brand-300 dark:hover:border-brand-500 hover:bg-brand-50 dark:hover:bg-brand-950/30 transition text-center text-slate-800 dark:text-slate-200">
+            <a href="{{ url_for('admin.upload_teams') }}" class="p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-brand-300 dark:hover:border-brand-500 hover:bg-brand-50 dark:hover:bg-brand-950/30 transition text-center text-slate-800 dark:text-slate-200 dark:hover:text-black">
                 <span class="text-2xl">👥</span>
                 <p class="text-sm font-semibold mt-2">Upload Teams</p>
             </a>
-            <a href="{{ url_for('admin.upload_questions') }}" class="p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-brand-300 dark:hover:border-brand-500 hover:bg-brand-50 dark:hover:bg-brand-950/30 transition text-center text-slate-800 dark:text-slate-200">
+            <a href="{{ url_for('admin.upload_questions') }}" class="p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-brand-300 dark:hover:border-brand-500 hover:bg-brand-50 dark:hover:bg-brand-950/30 transition text-center text-slate-800 dark:text-slate-200 dark:hover:text-black">
                 <span class="text-2xl">📋</span>
                 <p class="text-sm font-semibold mt-2">Upload Questions</p>
             </a>
-            <a href="{{ url_for('admin.monitoring') }}" class="p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-brand-300 dark:hover:border-brand-500 hover:bg-brand-50 dark:hover:bg-brand-950/30 transition text-center text-slate-800 dark:text-slate-200">
+            <a href="{{ url_for('admin.monitoring') }}" class="p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-brand-300 dark:hover:border-brand-500 hover:bg-brand-50 dark:hover:bg-brand-950/30 transition text-center text-slate-800 dark:text-slate-200 dark:hover:text-black">
                 <span class="text-2xl">📡</span>
                 <p class="text-sm font-semibold mt-2">Live Monitor</p>
             </a>
