@@ -111,8 +111,8 @@ python app.py
 ```
 
 By default, the server runs on:
-*   **Admin Dashboard Login:** [http://localhost:5001/admin/login](http://localhost:5001/admin/login)
-*   **Student Quiz Portal:** [http://localhost:5001/quiz_login](http://localhost:5001/quiz_login)
+*   **Admin Dashboard Login:** [http://localhost:5000/admin/login](http://localhost:5000/admin/login)
+*   **Student Quiz Portal:** [http://localhost:5000/quiz_login](http://localhost:5000/quiz_login)
 
 ### Default Admin Credentials
 *   **Username:** `admin`

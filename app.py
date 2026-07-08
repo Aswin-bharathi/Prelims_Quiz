@@ -20,7 +20,7 @@ from app.factory import create_app
 app = create_app()
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5001))
+    port = int(os.environ.get('PORT', 5000))
     url = f'http://localhost:{port}/admin/login'
 
     def open_browser():
