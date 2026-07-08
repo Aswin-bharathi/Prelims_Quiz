@@ -1,0 +1,80 @@
+{% extends 'admin/base.html' %}
+{% block title %}Teams{% endblock %}
+{% block page_title %}Teams List{% endblock %}
+
+{% block content %}
+<div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+    <p class="text-slate-600 dark:text-slate-400">{{ total }} teams registered</p>
+    <div class="flex flex-wrap gap-2">
+        <a href="{{ url_for('admin.add_team') }}" class="px-4 py-2 rounded-xl bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700 transition">Add Team</a>
+        <a href="{{ url_for('admin.upload_teams') }}" class="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 dark:text-slate-200 transition">Upload Teams</a>
+        <a href="{{ url_for('admin.sync_teams') }}" class="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 dark:text-slate-200 transition">Sync API</a>
+    </div>
+</div>
+
+<div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+    <div class="p-4 border-b border-slate-100 dark:border-slate-800">
+        <form method="GET" class="flex flex-col sm:flex-row gap-3">
+            <input type="text" name="search" value="{{ search }}" placeholder="Search teams..."
+                   class="flex-1 px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:ring-2 focus:ring-brand-500 outline-none text-sm">
+            <select name="quiz_type_id" class="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white text-sm" onchange="this.form.submit()">
+                <option value="">All Quiz Types</option>
+                {% for qt in quiz_types %}
+                <option value="{{ qt.id }}" {% if quiz_type_id == qt.id %}selected{% endif %}>{{ qt.name }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="px-4 py-2 rounded-xl bg-slate-800 dark:bg-slate-700 text-white text-sm font-semibold hover:bg-slate-700 dark:hover:bg-slate-650 transition">Search</button>
+        </form>
+    </div>
+    <!-- inner scrolling wrapper for table: max-h-[600px] and overflow-y-auto -->
+    <div class="overflow-x-auto max-h-[600px] overflow-y-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-10">
+                <tr>
+                    <th class="text-left px-6 py-3 font-semibold text-slate-600 dark:text-slate-400">Team Name</th>
+                    <th class="text-left px-6 py-3 font-semibold text-slate-600 dark:text-slate-400">Password</th>
+                    <th class="text-left px-6 py-3 font-semibold text-slate-600 dark:text-slate-400">Access</th>
+                    <th class="text-left px-6 py-3 font-semibold text-slate-600 dark:text-slate-400">Quiz Status</th>
+                    <th class="text-right px-6 py-3 font-semibold text-slate-600 dark:text-slate-400">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                {% for team in teams %}
+                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                    <td class="px-6 py-4 font-semibold text-slate-800 dark:text-slate-200">{{ team.lotname }}</td>
+                    <td class="px-6 py-4 font-mono text-xs text-slate-800 dark:text-slate-200">{{ team.password }}</td>
+                    <td class="px-6 py-4">
+                        {% if team.all_quizzes %}
+                        <span class="px-2 py-1 rounded-full text-xs font-semibold bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400">All Quizzes</span>
+                        {% else %}
+                        <span class="px-2 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">Specific</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4">
+                        {% if quiz_type_id %}
+                            <div class="flex flex-wrap gap-1">
+                                {% for qs in team.quiz_statuses %}
+                                <span class="px-2 py-0.5 rounded text-xs {% if qs.status == 'completed' %}bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400{% elif qs.status == 'in_progress' %}bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400{% else %}bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400{% endif %}">
+                                    {{ qs.status.replace('_', ' ').title() }}
+                                </span>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <span class="text-xs text-slate-400 dark:text-slate-500 italic">Select Quiz Type to view</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-right space-x-2">
+                        <a href="{{ url_for('admin.update_team', team_id=team.id) }}" class="text-brand-600 hover:underline dark:text-brand-400 text-xs font-semibold">Edit</a>
+                        <form method="POST" action="{{ url_for('admin.delete_team', team_id=team.id) }}" class="inline" onsubmit="return confirm('Delete this team? This will remove quiz assignments, progress, results, and monitoring history for this team. This action cannot be undone.')">
+                            <button type="submit" class="text-red-600 hover:underline dark:text-red-400 text-xs font-semibold">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900">No teams found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

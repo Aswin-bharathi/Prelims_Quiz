@@ -1,0 +1,41 @@
+{% extends 'quiz/base.html' %}
+{% block title %}Instructions{% endblock %}
+{% block body %}
+<div class="quiz-scene quiz-scene-instructions">
+    <div class="quiz-bg-orbs"></div>
+    <div class="quiz-card quiz-card-wide quiz-fade-in">
+        <div class="quiz-badge">{{ team.quiz_type_name }}</div>
+        <h1 class="quiz-title">Quiz Instructions</h1>
+        <p class="quiz-subtitle">Please read carefully before starting</p>
+
+        <div class="quiz-info-grid">
+            <div class="quiz-info-item">
+                <span class="quiz-info-label">Questions</span>
+                <span class="quiz-info-value">{{ team.question_count }}</span>
+            </div>
+            <div class="quiz-info-item">
+                <span class="quiz-info-label">Duration</span>
+                <span class="quiz-info-value">{{ team.duration_minutes }} min</span>
+            </div>
+            <div class="quiz-info-item">
+                <span class="quiz-info-label">Team</span>
+                <span class="quiz-info-value">{{ team.lotname }}</span>
+            </div>
+        </div>
+
+        <ul class="quiz-rules">
+            <li>The timer starts when you begin the quiz.</li>
+            <li>Do not switch tabs or minimize the browser.</li>
+            <li>Each question has only one correct answer.</li>
+            <li>Submit before time runs out — auto-submit on timeout.</li>
+            <li>Right-click and keyboard shortcuts are disabled.</li>
+        </ul>
+
+        {% if team.description %}
+        <p class="quiz-description">{{ team.description }}</p>
+        {% endif %}
+
+        <a href="{{ url_for('quiz.quiz_start') }}" class="quiz-btn quiz-btn-primary quiz-btn-lg">I Understand — Begin Quiz</a>
+    </div>
+</div>
+{% endblock %}

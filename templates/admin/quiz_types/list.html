@@ -1,0 +1,82 @@
+{% extends 'admin/base.html' %}
+{% block title %}Quiz Types{% endblock %}
+{% block page_title %}Quiz Type Management{% endblock %}
+
+{% block content %}
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <p class="text-slate-600 dark:text-slate-400">Manage quiz types, entry codes, and configurations.</p>
+    <a href="{{ url_for('admin.quiz_types_create') }}" class="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white font-semibold px-4 py-2.5 rounded-xl transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+        Create Quiz Type
+    </a>
+</div>
+
+<div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
+                <tr>
+                    <th class="text-left px-6 py-3 font-semibold text-slate-600 dark:text-slate-400">Name</th>
+                    <th class="text-left px-6 py-3 font-semibold text-slate-600 dark:text-slate-400">Entry Code</th>
+                    <th class="text-left px-6 py-3 font-semibold text-slate-600 dark:text-slate-400">Questions</th>
+                    <th class="text-left px-6 py-3 font-semibold text-slate-600 dark:text-slate-400">Duration</th>
+                    <th class="text-left px-6 py-3 font-semibold text-slate-600 dark:text-slate-400">Status</th>
+                    <th class="text-left px-6 py-3 font-semibold text-slate-600 dark:text-slate-400">Quiz State</th>
+                    <th class="text-right px-6 py-3 font-semibold text-slate-600 dark:text-slate-400">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                {% for qt in quiz_types %}
+                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
+                    <td class="px-6 py-4">
+                        <p class="font-semibold text-slate-800 dark:text-slate-200">{{ qt.name }}</p>
+                        {% if qt.description %}<p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{{ qt.description[:60] }}{% if qt.description|length > 60 %}...{% endif %}</p>{% endif %}
+                    </td>
+                    <td class="px-6 py-4"><code class="px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded text-xs font-mono">{{ qt.entry_code }}</code></td>
+                    <td class="px-6 py-4 text-slate-800 dark:text-slate-200">{{ qt.question_count }}</td>
+                    <td class="px-6 py-4 text-slate-800 dark:text-slate-200">{{ qt.duration_minutes }} min</td>
+                    <td class="px-6 py-4">
+                        <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold {% if qt.status == 'active' %}bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400{% else %}bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400{% endif %}">
+                            {{ qt.status|title }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="inline-flex px-2.5 py-1 rounded-full text-xs font-semibold
+                            {% if qt.quiz_status == 'running' %}bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400
+                            {% elif qt.quiz_status == 'ended' %}bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400
+                            {% else %}bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400{% endif %}">
+                            {{ qt.quiz_status|title }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <div class="flex items-center justify-end gap-2 flex-wrap">
+                            {% if qt.quiz_status != 'running' and qt.status == 'active' %}
+                            <form method="POST" action="{{ url_for('admin.quiz_types_start', quiz_type_id=qt.id) }}" class="inline">
+                                <button type="submit" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50 transition">Start Quiz</button>
+                            </form>
+                            {% endif %}
+                            {% if qt.quiz_status == 'running' %}
+                            <form method="POST" action="{{ url_for('admin.quiz_types_end', quiz_type_id=qt.id) }}" class="inline" onsubmit="return confirm('End this quiz for all teams?')">
+                                <button type="submit" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 transition">End Quiz</button>
+                            </form>
+                            {% endif %}
+                            <a href="{{ url_for('admin.quiz_types_edit', quiz_type_id=qt.id) }}" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 transition">Edit</a>
+                            <form method="POST" action="{{ url_for('admin.quiz_types_toggle', quiz_type_id=qt.id) }}" class="inline">
+                                <button type="submit" class="px-3 py-1.5 text-xs font-semibold rounded-lg {% if qt.status == 'active' %}bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:hover:bg-amber-900/50{% else %}bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50{% endif %} transition">
+                                    {% if qt.status == 'active' %}Disable{% else %}Enable{% endif %}
+                                </button>
+                            </form>
+                            <form method="POST" action="{{ url_for('admin.quiz_types_delete', quiz_type_id=qt.id) }}" class="inline" onsubmit="return confirm('Delete this Quiz Type? This will remove its questions, results, team assignments, quiz status, and monitoring history. This action cannot be undone.')">
+                                <button type="submit" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 transition">Delete</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900">No quiz types yet. Create one to get started.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

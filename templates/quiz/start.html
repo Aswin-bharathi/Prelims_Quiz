@@ -1,0 +1,34 @@
+{% extends 'quiz/base.html' %}
+{% block title %}Get Ready{% endblock %}
+{% block body %}
+<div class="quiz-scene quiz-scene-start">
+    <div class="quiz-bg-orbs"></div>
+    <div class="quiz-card quiz-card-wide quiz-fade-in">
+        <div class="quiz-badge">{{ team.quiz_type_name }}</div>
+        <h1 class="quiz-title">Get Ready!</h1>
+        <p class="quiz-subtitle">Your quiz begins in a moment</p>
+
+        <div class="quiz-info-grid">
+            <div class="quiz-info-item">
+                <span class="quiz-info-label">Questions</span>
+                <span class="quiz-info-value">{{ total_questions }}</span>
+            </div>
+            <div class="quiz-info-item">
+                <span class="quiz-info-label">Duration</span>
+                <span class="quiz-info-value">{{ duration_minutes }} min</span>
+            </div>
+            <div class="quiz-info-item">
+                <span class="quiz-info-label">Team</span>
+                <span class="quiz-info-value">{{ team.lotname }}</span>
+            </div>
+        </div>
+
+        <div class="quiz-countdown">
+            <div id="countdown-num" class="quiz-countdown-num" data-redirect="{{ url_for('quiz.quiz_questions') }}" data-seconds="3">3</div>
+            <p class="quiz-subtitle">Starting quiz...</p>
+        </div>
+
+        <a href="{{ url_for('quiz.quiz_questions') }}" class="quiz-btn quiz-btn-primary quiz-btn-lg">Start Now</a>
+    </div>
+</div>
+{% endblock %}

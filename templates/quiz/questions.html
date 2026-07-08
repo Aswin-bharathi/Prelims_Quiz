@@ -1,0 +1,37 @@
+{% extends 'quiz/base.html' %}
+{% block title %}Quiz{% endblock %}
+{% block body %}
+<div class="quiz-active-scene" style="user-select:none;-webkit-user-select:none;"
+    data-prevent-copy="{{ settings.get('prevent_copy', '1') }}"
+    data-tab-switch-limit="{{ settings.get('tab_switch_limit', '1') }}">
+    <div class="quiz-topbar">
+        <div>
+            <div class="quiz-topbar-title">{{ team.quiz_type_name }}</div>
+            <div class="quiz-topbar-meta">{{ team.lotname }} · {{ total_questions }} Questions</div>
+        </div>
+        <div id="quiz-timer" class="quiz-timer" data-remaining="{{ remaining_seconds }}">--:--</div>
+    </div>
+
+    <form id="quiz-form" method="POST" action="{{ url_for('quiz.quiz_submit') }}" class="quiz-questions-wrap">
+        {% for question in questions %}
+        {% set question_index = loop.index %}
+        <div class="quiz-question-card">
+            <div class="quiz-question-num">Question {{ question_index }} of {{ total_questions }}</div>
+            <p class="quiz-question-text">{{ question.question }}</p>
+            <div class="quiz-options">
+                {% for opt in [question.option1, question.option2, question.option3, question.option4] %}
+                <label class="quiz-option">
+                    <input type="radio" name="q{{ question_index }}" value="{{ opt }}">
+                    <span>{{ opt }}</span>
+                </label>
+                {% endfor %}
+            </div>
+            <input type="hidden" name="q{{ question_index }}-answer" value="{{ question.answer }}">
+        </div>
+        {% endfor %}
+        <div class="quiz-submit-wrap">
+            <button type="submit" class="quiz-btn quiz-btn-primary">Submit Quiz</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

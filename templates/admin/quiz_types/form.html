@@ -1,0 +1,65 @@
+{% extends 'admin/base.html' %}
+{% block title %}{{ 'Edit' if quiz_type else 'Create' }} Quiz Type{% endblock %}
+{% block page_title %}{{ 'Edit' if quiz_type else 'Create' }} Quiz Type{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl">
+    <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 lg:p-8">
+        <form method="POST" class="space-y-5">
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Quiz Name *</label>
+                <input type="text" name="name" required value="{{ quiz_type.name if quiz_type else '' }}"
+                       class="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Description</label>
+                <textarea name="description" rows="3" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white text-sm focus:ring-2 focus:ring-brand-500 outline-none">{{ quiz_type.description if quiz_type and quiz_type.description else '' }}</textarea>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Number of Questions *</label>
+                    <input type="number" name="question_count" required min="1" max="500"
+                           value="{{ quiz_type.question_count if quiz_type else 15 }}"
+                           class="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Time Duration (minutes) *</label>
+                    <input type="number" name="duration_minutes" required min="1" max="600"
+                           value="{{ quiz_type.duration_minutes if quiz_type else 15 }}"
+                           class="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Entry Code *</label>
+                <input type="text" name="entry_code" required pattern="[A-Za-z0-9_-]{3,50}"
+                       value="{{ quiz_type.entry_code if quiz_type else '' }}"
+                       class="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white text-sm focus:ring-2 focus:ring-brand-500 outline-none uppercase"
+                       placeholder="e.g. TECH2026">
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Unique access code students must enter at login.</p>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Status</label>
+                    <select name="status" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                        <option value="active" {% if quiz_type and quiz_type.status == 'active' %}selected{% endif %} class="dark:bg-slate-800">Active</option>
+                        <option value="inactive" {% if not quiz_type or quiz_type.status == 'inactive' %}selected{% endif %} class="dark:bg-slate-800">Inactive</option>
+                    </select>
+                </div>
+                <div class="flex items-end">
+                    <label class="flex items-center gap-2 cursor-pointer text-slate-700 dark:text-slate-300">
+                        <input type="checkbox" name="allow_reattempt" value="1" {% if quiz_type and quiz_type.allow_reattempt %}checked{% endif %}
+                               class="w-4 h-4 rounded border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-brand-600 focus:ring-brand-500">
+                        <span class="text-sm font-medium">Allow Reattempts</span>
+                    </label>
+                </div>
+            </div>
+            <div class="flex gap-3 pt-2">
+                <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white font-semibold px-6 py-2.5 rounded-xl transition">
+                    {{ 'Update' if quiz_type else 'Create' }} Quiz Type
+                </button>
+                <a href="{{ url_for('admin.quiz_types_list') }}" class="px-6 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 dark:text-slate-200 transition">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

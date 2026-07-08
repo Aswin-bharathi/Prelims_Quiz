@@ -1,0 +1,11 @@
+{% extends 'admin/base.html' %}
+{% block title %}Sync Teams{% endblock %}
+{% block page_title %}Sync Teams from API{% endblock %}
+{% block content %}
+<div class="max-w-lg bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-6">
+    <p class="text-slate-600 dark:text-slate-400 mb-6">Fetch teams from the external API and import new entries with access to all quiz types.</p>
+    <form method="POST">
+        <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white font-semibold px-6 py-2.5 rounded-xl transition">Sync Teams Now</button>
+    </form>
+</div>
+{% endblock %}

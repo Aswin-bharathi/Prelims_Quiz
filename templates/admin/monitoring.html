@@ -1,0 +1,26 @@
+{% extends 'admin/base.html' %}
+{% block title %}Live Monitoring{% endblock %}
+{% block page_title %}Live Quiz Monitoring{% endblock %}
+
+{% block content %}
+<div class="mb-4 flex items-center justify-between">
+    <p class="text-slate-600 dark:text-slate-400">Real-time overview of all quiz types. Updates every 3 seconds.</p>
+    <span id="live-indicator" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-xs font-semibold">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Live
+    </span>
+</div>
+
+<div id="monitoring-grid" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+    {% for i in range(3) %}
+    <div class="skeleton-card bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 animate-pulse">
+        <div class="h-4 bg-slate-200 dark:bg-slate-800 rounded w-1/2 mb-4"></div>
+        <div class="h-3 bg-slate-100 dark:bg-slate-800/60 rounded w-full mb-2"></div>
+        <div class="h-3 bg-slate-100 dark:bg-slate-800/60 rounded w-3/4"></div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/monitoring.js') }}"></script>
+{% endblock %}

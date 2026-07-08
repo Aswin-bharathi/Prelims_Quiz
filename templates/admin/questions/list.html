@@ -1,0 +1,59 @@
+{% extends 'admin/base.html' %}
+{% block title %}Questions{% endblock %}
+{% block page_title %}Questions List{% endblock %}
+{% block content %}
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <p class="text-slate-600 dark:text-slate-400">{{ total }} questions</p>
+    <div class="flex flex-wrap gap-2">
+        <a href="{{ url_for('admin.add_question') }}" class="px-4 py-2 rounded-xl bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700 transition">Add Question</a>
+        <a href="{{ url_for('admin.upload_questions') }}" class="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 dark:text-slate-200 transition">Upload</a>
+        {% if quiz_type_id %}
+        <form method="POST" action="{{ url_for('admin.bulk_delete_questions') }}" class="inline" onsubmit="return confirm('WARNING: This will permanently delete ALL questions for this quiz type. This action cannot be undone. Proceed?')">
+            <input type="hidden" name="quiz_type_id" value="{{ quiz_type_id }}">
+            <button type="submit" class="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition">Delete All Questions</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+<div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+    <div class="p-4 border-b border-slate-100 dark:border-slate-800">
+        <form method="GET" class="flex flex-col sm:flex-row gap-3">
+            <input type="text" name="search" value="{{ search }}" placeholder="Search questions..." class="flex-1 px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+            <select name="quiz_type_id" class="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white text-sm" onchange="this.form.submit()">
+                <option value="">All Types</option>
+                {% for qt in quiz_types %}
+                <option value="{{ qt.id }}" {% if quiz_type_id == qt.id %}selected{% endif %}>{{ qt.name }}</option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+    <!-- inner scrolling wrapper for table: max-h-[600px] and overflow-y-auto -->
+    <div class="overflow-x-auto max-h-[600px] overflow-y-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-10"><tr>
+                <th class="text-left px-4 py-3 font-semibold text-slate-600 dark:text-slate-400">Type</th>
+                <th class="text-left px-4 py-3 font-semibold text-slate-600 dark:text-slate-400">Question</th>
+                <th class="text-left px-4 py-3 font-semibold text-slate-600 dark:text-slate-400">Answer</th>
+                <th class="text-right px-4 py-3 font-semibold text-slate-600 dark:text-slate-400">Actions</th>
+            </tr></thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                {% for q in questions %}
+                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 text-slate-800 dark:text-slate-200">
+                    <td class="px-4 py-3"><span class="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 font-semibold">{{ q.quiz_type_name }}</span></td>
+                    <td class="px-4 py-3 max-w-md truncate">{{ q.question }}</td>
+                    <td class="px-4 py-3">{{ q.answer }}</td>
+                    <td class="px-4 py-3 text-right space-x-2">
+                        <a href="{{ url_for('admin.edit_question', question_id=q.id) }}" class="text-brand-600 dark:text-brand-400 text-xs font-semibold hover:underline">Edit</a>
+                        <form method="POST" action="{{ url_for('admin.delete_question', question_id=q.id, quiz_type_id=quiz_type_id) }}" class="inline" onsubmit="return confirm('Delete this question? It will be removed from this quiz type question bank and cannot be recovered.')">
+                            <button type="submit" class="text-red-600 dark:text-red-400 text-xs font-semibold hover:underline">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900">No questions found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

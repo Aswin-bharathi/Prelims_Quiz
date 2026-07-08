@@ -1,0 +1,36 @@
+{% extends 'quiz/base.html' %}
+{% block title %}Login{% endblock %}
+{% block body %}
+<div class="quiz-scene quiz-scene-login">
+    <div class="quiz-bg-orbs"></div>
+    <div class="quiz-card quiz-fade-in">
+        <div class="quiz-logo">Q</div>
+        <h1 class="quiz-title">Team Login</h1>
+        <p class="quiz-subtitle">Enter your credentials and quiz entry code</p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="quiz-alert quiz-alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" class="quiz-form">
+            <div class="quiz-field">
+                <label for="lotname">Team Name</label>
+                <input type="text" id="lotname" name="lotname" required autocomplete="username" placeholder="Enter team name">
+            </div>
+            <div class="quiz-field">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required autocomplete="current-password" placeholder="Enter password">
+            </div>
+            <div class="quiz-field">
+                <label for="entry_code">Quiz Entry Code</label>
+                <input type="text" id="entry_code" name="entry_code" required placeholder="e.g. TECH2026" class="uppercase">
+            </div>
+            <button type="submit" class="quiz-btn quiz-btn-primary">Start Authentication</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

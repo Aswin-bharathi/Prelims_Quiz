@@ -1,0 +1,75 @@
+{% extends 'admin/base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+    {% set cards = [
+        ('Quiz Types', stats.quiz_types, 'bg-blue-500', 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10'),
+        ('Teams', stats.teams, 'bg-emerald-500', 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z'),
+        ('Questions', stats.questions, 'bg-violet-500', 'M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'),
+        ('Results', stats.results, 'bg-amber-500', 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'),
+    ] %}
+    {% for label, value, color, icon in cards %}
+    <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm hover:shadow-md transition">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-slate-500 dark:text-slate-400">{{ label }}</p>
+                <p class="text-3xl font-bold text-slate-800 dark:text-white mt-1">{{ value }}</p>
+            </div>
+            <div class="{{ color }} w-12 h-12 rounded-xl flex items-center justify-center text-white">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ icon }}"></path></svg>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+    <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold text-slate-800 dark:text-white">Quick Actions</h3>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+            <a href="{{ url_for('admin.quiz_types_create') }}" class="p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-brand-300 dark:hover:border-brand-500 hover:bg-brand-50 dark:hover:bg-brand-950/30 transition text-center text-slate-800 dark:text-slate-200">
+                <span class="text-2xl">➕</span>
+                <p class="text-sm font-semibold mt-2">New Quiz Type</p>
+            </a>
+            <a href="{{ url_for('admin.upload_teams') }}" class="p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-brand-300 dark:hover:border-brand-500 hover:bg-brand-50 dark:hover:bg-brand-950/30 transition text-center text-slate-800 dark:text-slate-200">
+                <span class="text-2xl">👥</span>
+                <p class="text-sm font-semibold mt-2">Upload Teams</p>
+            </a>
+            <a href="{{ url_for('admin.upload_questions') }}" class="p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-brand-300 dark:hover:border-brand-500 hover:bg-brand-50 dark:hover:bg-brand-950/30 transition text-center text-slate-800 dark:text-slate-200">
+                <span class="text-2xl">📋</span>
+                <p class="text-sm font-semibold mt-2">Upload Questions</p>
+            </a>
+            <a href="{{ url_for('admin.monitoring') }}" class="p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-brand-300 dark:hover:border-brand-500 hover:bg-brand-50 dark:hover:bg-brand-950/30 transition text-center text-slate-800 dark:text-slate-200">
+                <span class="text-2xl">📡</span>
+                <p class="text-sm font-semibold mt-2">Live Monitor</p>
+            </a>
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold text-slate-800 dark:text-white">Quiz Overview</h3>
+            <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">{{ stats.active_quizzes }} Active</span>
+        </div>
+        <div class="space-y-3">
+            {% for q in monitoring_preview %}
+            <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40">
+                <div>
+                    <p class="font-semibold text-sm text-slate-800 dark:text-slate-200">{{ q.name }}</p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">{{ q.question_count }} Q · {{ q.duration_minutes }} min · {{ q.entry_code }}</p>
+                </div>
+                <span class="text-xs font-semibold px-2 py-1 rounded-full {% if q.status == 'active' %}bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400{% else %}bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400{% endif %}">
+                    {{ q.status|title }}
+                </span>
+            </div>
+            {% else %}
+            <p class="text-slate-500 dark:text-slate-400 text-sm">No quiz types configured yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

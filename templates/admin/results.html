@@ -1,0 +1,83 @@
+{% extends 'admin/base.html' %}
+{% block title %}Results{% endblock %}
+{% block page_title %}Quiz Results & Leaderboard{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+    <form method="GET" class="flex flex-col sm:flex-row gap-3 flex-1">
+        <input type="text" name="search" value="{{ search }}" placeholder="Search team..." class="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white text-sm flex-1 max-w-xs focus:ring-2 focus:ring-brand-500 outline-none">
+        <select name="quiz_type_id" class="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white text-sm" onchange="this.form.submit()">
+            <option value="">All Quiz Types</option>
+            {% for qt in quiz_types %}
+            <option value="{{ qt.id }}" {% if quiz_type_id == qt.id %}selected{% endif %}>{{ qt.name }}</option>
+            {% endfor %}
+        </select>
+        <select name="top_n" class="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white text-sm" onchange="this.form.submit()">
+            {% for i in range(5, 11) %}
+            <option value="{{ i }}" {% if top_n == i %}selected{% endif %}>Top {{ i }} Teams</option>
+            {% endfor %}
+        </select>
+    </form>
+    <div class="flex gap-2">
+        <a href="?format=word&quiz_type_id={{ quiz_type_id or '' }}&top_n={{ top_n }}" class="px-4 py-2 rounded-xl bg-slate-800 dark:bg-slate-700 text-white text-sm font-semibold hover:bg-slate-700 dark:hover:bg-slate-650 transition">Export Top {{ top_n }} (Word)</a>
+        <a href="?format=excel&quiz_type_id={{ quiz_type_id or '' }}&search={{ search }}&top_n={{ top_n }}" class="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 dark:text-slate-200 transition">Export Excel</a>
+    </div>
+</div>
+
+{% if top_teams %}
+<div class="mb-8">
+    <h3 class="text-lg font-bold mb-4 flex items-center gap-2 text-slate-800 dark:text-white">
+        <span class="text-2xl">🏆</span> Top {{ top_n }} Teams
+    </h3>
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        {% for team in top_teams %}
+        <div class="bg-white dark:bg-slate-900 rounded-2xl border-2 {% if team.rank == 1 %}border-amber-400{% else %}border-slate-200 dark:border-slate-800{% endif %} p-5 shadow-sm text-center relative overflow-hidden">
+            {% if team.rank == 1 %}<div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 to-yellow-300"></div>{% endif %}
+            <div class="w-10 h-10 rounded-full mx-auto mb-3 flex items-center justify-center font-bold text-lg
+                {% if team.rank == 1 %}bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400{% elif team.rank == 2 %}bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300{% elif team.rank == 3 %}bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400{% else %}bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400{% endif %}">
+                #{{ team.rank }}
+            </div>
+            <p class="font-bold text-sm truncate text-slate-800 dark:text-slate-200">{{ team.lotname }}</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">{{ team.quiz_type_name }}</p>
+            <p class="text-2xl font-bold text-brand-600 dark:text-brand-400 mt-2">{{ team.score }}</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400">{{ team.duration_formatted }}</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800"><h3 class="font-bold text-slate-800 dark:text-white">All Rankings</h3></div>
+    <div class="overflow-x-auto max-h-[600px] overflow-y-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-10">
+                <tr>
+                    <th class="text-left px-6 py-3 font-semibold text-slate-600 dark:text-slate-400">Rank</th>
+                    <th class="text-left px-6 py-3 font-semibold text-slate-600 dark:text-slate-400">Team</th>
+                    <th class="text-left px-6 py-3 font-semibold text-slate-600 dark:text-slate-400">Quiz Type</th>
+                    <th class="text-left px-6 py-3 font-semibold text-slate-600 dark:text-slate-400">Score</th>
+                    <th class="text-left px-6 py-3 font-semibold text-slate-600 dark:text-slate-400">Time Taken</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                {% for r in results %}
+                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 text-slate-800 dark:text-slate-200 {% if r.rank <= top_n %}bg-amber-50/30 dark:bg-amber-950/10{% endif %}">
+                    <td class="px-6 py-4 font-bold">{{ r.rank }}</td>
+                    <td class="px-6 py-4 font-semibold">{{ r.lotname }}</td>
+                    <td class="px-6 py-4"><span class="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 font-semibold">{{ r.quiz_type_name }}</span></td>
+                    <td class="px-6 py-4 font-bold text-brand-600 dark:text-brand-400">{{ r.score }}/{{ r.total_questions }}</td>
+                    <td class="px-6 py-4 font-mono text-xs">{{ r.duration_formatted }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900">No results yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/results.js') }}"></script>
+{% endblock %}

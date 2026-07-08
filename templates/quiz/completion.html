@@ -1,0 +1,16 @@
+{% extends 'quiz/base.html' %}
+{% block title %}Submitted{% endblock %}
+{% block body %}
+<div class="quiz-result-scene">
+    <div id="bubble-container" class="quiz-bubbles"></div>
+    <div class="quiz-result-card quiz-fade-in">
+        <div class="quiz-result-icon">✓</div>
+        <h1 class="quiz-title">Quiz Submitted!</h1>
+        <p class="quiz-subtitle">Great job, {{ result.lotname }}!</p>
+        <p class="quiz-score-label">{{ result.quiz_type_name }}</p>
+        <div class="quiz-score-display">{{ result.score }}/{{ result.total }}</div>
+        <p class="quiz-score-label">Your score</p>
+        <a href="{{ url_for('quiz.quiz_result') }}" class="quiz-btn quiz-btn-primary quiz-btn-lg">View Results</a>
+    </div>
+</div>
+{% endblock %}
