@@ -1,3 +1,4 @@
+from pandas import errors
 import pandas as pd
 from app.database import get_db
 
@@ -149,8 +150,38 @@ class QuestionService:
                         errors.append(f'Row {index + 2}: Duplicate question in uploaded file.')
                         continue
                     options = [option1, option2, option3, option4]
-                    if answer not in options:
-                        errors.append(f'Row {index + 2}: Answer must exactly match one option.')
+
+                    # Normalize answer
+                    normalized_answer = answer.strip().lower().replace(" ", "")
+
+                    answer_mapping = {
+                        "a": option1,
+                        "b": option2,
+                        "c": option3,
+                        "d": option4,
+                        "1": option1,
+                        "2": option2,
+                        "3": option3,
+                        "4": option4,
+                        "option1": option1,
+                        "option2": option2,
+                        "option3": option3,
+                        "option4": option4,
+                        "optiona": option1,
+                        "optionb": option2,
+                        "optionc": option3,
+                        "optiond": option4,
+                    }
+
+                    if normalized_answer in answer_mapping:
+                        answer = answer_mapping[normalized_answer]
+                    elif answer in options:
+                        # Exact option text already provided
+                        pass
+                    else:
+                        errors.append(
+                            f'Row {index + 2}: Answer must be A/B/C/D, Option1-4, Option A-D, or exactly match one of the option texts.'
+                        )
                         continue
                     c.execute(
                         '''INSERT INTO questions

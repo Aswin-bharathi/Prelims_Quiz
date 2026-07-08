@@ -17,10 +17,10 @@ def validate_quiz_type_form(name, question_count, duration_minutes, entry_code):
         dm = int(duration_minutes)
     except (TypeError, ValueError):
         return False, 'Question count and duration must be valid numbers.'
-    if qc < 1 or qc > 500:
-        return False, 'Question count must be between 1 and 500.'
-    if dm < 1 or dm > 600:
-        return False, 'Duration must be between 1 and 600 minutes.'
+    if qc < 1 or qc > 20:
+        return False, 'Question count must be between 1 and 20.'
+    if dm < 1 or dm > 30:
+        return False, 'Duration must be between 1 and 30 minutes.'
     ok, msg = validate_entry_code(entry_code)
     if not ok:
         return False, msg
