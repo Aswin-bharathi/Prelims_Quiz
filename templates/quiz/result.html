@@ -8,9 +8,31 @@
         <h1 class="quiz-title">Congratulations!</h1>
         <p class="quiz-subtitle">{{ result.lotname }}</p>
         <p class="quiz-score-label">{{ result.quiz_type_name }}</p>
-        <p style="color:var(--quiz-muted);margin-top:1rem;font-size:0.9rem;">
-            Results will be announced by the organizers. Thank you for participating!
-        </p>
+        <div class="quiz-score-display">{{ result.score }}/{{ result.total }}</div>
+        <p class="quiz-score-label">Final Score</p>
+        <div id="result-announcement" data-results-url="{{ url_for('quiz.results_state') }}" style="margin-top:1rem;">
+            {% if announcement.released %}
+                {% if announcement.selected %}
+                <div style="padding:1rem;border-radius:1rem;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.25);color:#065f46;">
+                    <div style="font-weight:700;font-size:1rem;">✅ Selected</div>
+                    <p style="margin:0.25rem 0 0;font-size:0.95rem;line-height:1.5;">
+                        🎉 <strong>Congratulations!</strong> Your team has been selected. We wish you the very best in the next round!
+                    </p>
+                </div>
+                {% else %}
+                <div style="padding:1rem;border-radius:1rem;background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.25);color:#991b1b;">
+                    <div style="font-weight:700;font-size:1rem;">❌ Not Selected</div>
+                    <p style="margin:0.25rem 0 0;font-size:0.95rem;line-height:1.5;">
+                        <strong>Thank you for participating!</strong> Your team was not selected this time. We appreciate your effort and hope to see you in future competitions.
+                    </p>
+                </div>
+                {% endif %}
+            {% else %}
+            <p style="color:var(--quiz-muted);font-size:0.9rem;">
+                Results are not yet announced.
+            </p>
+            {% endif %}
+        </div>
     </div>
 </div>
 {% endblock %}

@@ -1,6 +1,7 @@
 import unittest
 
 from app.factory import create_app
+from app.services.result_service import ResultService
 
 
 class DatabaseCompatibilityTest(unittest.TestCase):
@@ -23,6 +24,16 @@ class DatabaseCompatibilityTest(unittest.TestCase):
             response = client.get('/admin/login', follow_redirects=False)
             self.assertEqual(response.status_code, 302)
             self.assertIn('/admin/dashboard', response.location)
+
+    def test_result_announcement_state_is_persisted(self):
+        app = create_app()
+        with app.app_context():
+            ResultService.set_announcement_state(True, 5)
+            self.assertTrue(ResultService.get_announcement_state())
+            self.assertEqual(ResultService.get_announcement_top_n(), 5)
+            ResultService.set_announcement_state(False, None)
+            self.assertFalse(ResultService.get_announcement_state())
+            self.assertEqual(ResultService.get_announcement_top_n(), 5)
 
     def test_question_crud_and_bulk_delete(self):
         app = create_app()

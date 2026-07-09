@@ -223,6 +223,48 @@
         }
     }
 
+    function initResultAnnouncement() {
+        const announcement = document.getElementById('result-announcement');
+        if (!announcement) return;
+
+        const url = announcement.getAttribute('data-results-url');
+        if (!url) return;
+
+        const renderAnnouncement = (data) => {
+            if (!data || !data.announcement) return;
+
+            if (data.announcement.released) {
+                if (data.announcement.selected) {
+                    announcement.innerHTML = `
+                        <div style="padding:1rem;border-radius:1rem;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.25);color:#065f46;">
+                            <div style="font-weight:700;font-size:1rem;">✅ Selected</div>
+                            <p style="margin:0.25rem 0 0;font-size:0.95rem;line-height:1.5;">🎉 <strong>Congratulations!</strong> Your team has been selected. We wish you the very best in the next round!</p>
+                        </div>
+                    `;
+                } else {
+                    announcement.innerHTML = `
+                        <div style="padding:1rem;border-radius:1rem;background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.25);color:#991b1b;">
+                            <div style="font-weight:700;font-size:1rem;">❌ Not Selected</div>
+                            <p style="margin:0.25rem 0 0;font-size:0.95rem;line-height:1.5;"><strong>Thank you for participating!</strong> Your team was not selected this time. We appreciate your effort and hope to see you in future competitions.</p>
+                        </div>
+                    `;
+                }
+            } else {
+                announcement.innerHTML = '<p style="color:var(--quiz-muted);font-size:0.9rem;">Results are not yet announced.</p>';
+            }
+        };
+
+        const refreshAnnouncement = () => {
+            fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then((response) => response.json())
+                .then((data) => renderAnnouncement(data))
+                .catch(() => {});
+        };
+
+        refreshAnnouncement();
+        setInterval(refreshAnnouncement, 5000);
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         initQuizSecurity();
         initBubbles();
@@ -240,6 +282,7 @@
         }
         initPasswordToggle();
         initLoginNormalization();
+        initResultAnnouncement();
     });
 
     function initPasswordToggle() {

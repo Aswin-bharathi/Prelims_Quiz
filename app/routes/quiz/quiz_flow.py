@@ -3,6 +3,7 @@ from flask import render_template, request, redirect, url_for, session, flash, j
 from app.decorators import quiz_session_required, quiz_active_required
 from app.routes.quiz import quiz_bp
 from app.services.quiz_service import QuizService
+from app.services.result_service import ResultService
 from app.utils.formatting import format_duration
 
 
@@ -35,6 +36,7 @@ def _complete_quiz(answers):
         'duration': duration,
         'duration_formatted': format_duration(duration),
         'quiz_type_name': team.get('quiz_type_name', 'Quiz'),
+        'quiz_type_id': team.get('quiz_type_id'),
         'lotname': team['lotname'],
     }
 
@@ -132,7 +134,18 @@ def quiz_completion():
     if not session.get('quiz_completed'):
         flash('Please complete the quiz first!', 'error')
         return redirect(url_for('quiz.quiz_login'))
-    return render_template('quiz/completion.html', result=session.get('result', {}))
+
+    result = session.get('result', {})
+    quiz_type_id = result.get('quiz_type_id') or session.get('team', {}).get('quiz_type_id')
+    announcement_released = ResultService.get_announcement_state(quiz_type_id)
+    announcement_top_n = ResultService.get_announcement_top_n(quiz_type_id)
+    selected = ResultService.is_team_selected(result.get('lotname'), quiz_type_id, announcement_top_n) if announcement_released else False
+
+    return render_template(
+        'quiz/completion.html',
+        result=result,
+        announcement={'released': announcement_released, 'top_n': announcement_top_n, 'selected': selected},
+    )
 
 
 @quiz_bp.route('/result')
@@ -140,9 +153,40 @@ def quiz_result():
     if not session.get('quiz_completed'):
         flash('Please complete the quiz first!', 'error')
         return redirect(url_for('quiz.quiz_login'))
-    response = make_response(render_template('quiz/result.html', result=session.get('result', {})))
+
+    result = session.get('result', {})
+    quiz_type_id = result.get('quiz_type_id') or session.get('team', {}).get('quiz_type_id')
+    announcement_released = ResultService.get_announcement_state(quiz_type_id)
+    announcement_top_n = ResultService.get_announcement_top_n(quiz_type_id)
+    selected = ResultService.is_team_selected(result.get('lotname'), quiz_type_id, announcement_top_n) if announcement_released else False
+
+    response = make_response(render_template(
+        'quiz/result.html',
+        result=result,
+        announcement={'released': announcement_released, 'top_n': announcement_top_n, 'selected': selected},
+    ))
     response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
     return response
+
+
+@quiz_bp.route('/api/results-state')
+def results_state():
+    if not session.get('quiz_completed'):
+        return jsonify({'ok': False, 'message': 'Quiz not completed'}), 403
+
+    result = session.get('result', {})
+    quiz_type_id = result.get('quiz_type_id') or session.get('team', {}).get('quiz_type_id')
+    announcement_released = ResultService.get_announcement_state(quiz_type_id)
+    announcement_top_n = ResultService.get_announcement_top_n(quiz_type_id)
+    selected = ResultService.is_team_selected(result.get('lotname'), quiz_type_id, announcement_top_n) if announcement_released else False
+
+    return jsonify({
+        'ok': True,
+        'announcement': {
+            'released': announcement_released,
+            'selected': selected,
+        },
+    })
 
 
 @quiz_bp.route('/track_tab_switch', methods=['POST'])

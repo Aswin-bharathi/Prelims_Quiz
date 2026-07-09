@@ -8,6 +8,71 @@ from app.utils.formatting import format_duration
 class ResultService:
 
     @staticmethod
+    def _announcement_key(prefix, quiz_type_id=None):
+        if quiz_type_id is not None:
+            return f'{prefix}:{quiz_type_id}'
+        return prefix
+
+    @staticmethod
+    def set_announcement_state(is_released, top_n=None, quiz_type_id=None):
+        with get_db() as (_, c):
+            released_key = ResultService._announcement_key('results_announced', quiz_type_id)
+            c.execute(
+                '''INSERT INTO settings (setting_key, setting_value) VALUES (%s, %s)
+                   ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)''',
+                (released_key, '1' if is_released else '0'),
+            )
+            if top_n is not None:
+                top_n_key = ResultService._announcement_key('results_top_n', quiz_type_id)
+                c.execute(
+                    '''INSERT INTO settings (setting_key, setting_value) VALUES (%s, %s)
+                       ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)''',
+                    (top_n_key, str(top_n)),
+                )
+
+    @staticmethod
+    def get_announcement_state(quiz_type_id=None):
+        with get_db() as (_, c):
+            key = ResultService._announcement_key('results_announced', quiz_type_id)
+            c.execute('SELECT setting_value FROM settings WHERE setting_key = %s', (key,))
+            row = c.fetchone()
+            if row and row['setting_value'] is not None:
+                return row['setting_value'] == '1'
+            fallback_key = ResultService._announcement_key('results_announced', None)
+            c.execute('SELECT setting_value FROM settings WHERE setting_key = %s', (fallback_key,))
+            row = c.fetchone()
+            return bool(row and row['setting_value'] == '1')
+
+    @staticmethod
+    def get_announcement_top_n(quiz_type_id=None):
+        with get_db() as (_, c):
+            key = ResultService._announcement_key('results_top_n', quiz_type_id)
+            c.execute('SELECT setting_value FROM settings WHERE setting_key = %s', (key,))
+            row = c.fetchone()
+            if row and row['setting_value'] is not None:
+                try:
+                    return int(row['setting_value'])
+                except (TypeError, ValueError):
+                    pass
+            fallback_key = ResultService._announcement_key('results_top_n', None)
+            c.execute('SELECT setting_value FROM settings WHERE setting_key = %s', (fallback_key,))
+            row = c.fetchone()
+            if row and row['setting_value'] is not None:
+                try:
+                    return int(row['setting_value'])
+                except (TypeError, ValueError):
+                    pass
+            return 5
+
+    @staticmethod
+    def is_team_selected(lotname, quiz_type_id=None, top_n=None):
+        if not lotname:
+            return False
+        resolved_top_n = top_n if top_n is not None else ResultService.get_announcement_top_n(quiz_type_id)
+        leaderboard = ResultService.get_leaderboard(quiz_type_id, resolved_top_n)
+        return any(team['lotname'] == lotname for team in leaderboard)
+
+    @staticmethod
     def get_results(page=1, per_page=10, search='', quiz_type_id=None):
         offset = (page - 1) * per_page
         with get_db() as (_, c):

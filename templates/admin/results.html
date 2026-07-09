@@ -18,11 +18,22 @@
             {% endfor %}
         </select>
     </form>
-    <div class="flex gap-2">
+    <div class="flex flex-wrap gap-2">
+        <form method="POST" action="{{ url_for('admin.release_results') }}" class="flex">
+            <input type="hidden" name="quiz_type_id" value="{{ quiz_type_id or '' }}">
+            <input type="hidden" name="top_n" value="{{ top_n }}">
+            <button type="submit" class="px-4 py-2 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-500 transition">Release Results</button>
+        </form>
         <a href="?format=word&quiz_type_id={{ quiz_type_id or '' }}&top_n={{ top_n }}" class="px-4 py-2 rounded-xl bg-slate-800 dark:bg-slate-700 text-white text-sm font-semibold hover:bg-slate-700 dark:hover:bg-slate-650 transition">Export Top {{ top_n }} (Word)</a>
         <a href="?format=excel&quiz_type_id={{ quiz_type_id or '' }}&search={{ search }}&top_n={{ top_n }}" class="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 dark:text-slate-200 transition">Export Excel</a>
     </div>
 </div>
+
+{% if results_released %}
+<div class="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300">
+    Results are currently released to students for the selected filter.
+</div>
+{% endif %}
 
 {% if top_teams %}
 <div class="mb-8">

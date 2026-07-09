@@ -33,10 +33,22 @@ def view_results():
     )
     top_teams = ResultService.get_leaderboard(quiz_type_id, top_n)
     quiz_types = QuizTypeService.get_all()
+    results_released = ResultService.get_announcement_state(quiz_type_id)
 
     return render_template(
         'admin/results.html',
         results=results, top_teams=top_teams,
         page=1, total_pages=1, search=search,
-        quiz_type_id=quiz_type_id, quiz_types=quiz_types, total=total, top_n=top_n
+        quiz_type_id=quiz_type_id, quiz_types=quiz_types, total=total, top_n=top_n,
+        results_released=results_released,
     )
+
+
+@admin_bp.route('/results/release', methods=['POST'])
+@admin_login_required
+def release_results():
+    quiz_type_id = request.form.get('quiz_type_id', type=int)
+    top_n = request.form.get('top_n', 5, type=int)
+    ResultService.set_announcement_state(True, top_n, quiz_type_id)
+    flash('Results have been released to students.', 'success')
+    return redirect(url_for('admin.view_results', quiz_type_id=quiz_type_id, top_n=top_n))

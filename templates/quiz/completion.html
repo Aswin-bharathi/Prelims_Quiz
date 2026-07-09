@@ -8,6 +8,11 @@
         <h1 class="quiz-title">Quiz Submitted!</h1>
         <p class="quiz-subtitle">Great job, {{ result.lotname }}!</p>
         <p class="quiz-score-label">{{ result.quiz_type_name }}</p>
+        <div class="quiz-score-display">{{ result.score }}/{{ result.total }}</div>
+        <p class="quiz-score-label">Your score</p>
+        <div id="result-announcement" data-results-url="{{ url_for('quiz.results_state') }}" style="margin-top:1rem;">
+            <p style="color:var(--quiz-muted);font-size:0.9rem;">Results are not yet announced.</p>
+        </div>
         <a href="{{ url_for('quiz.quiz_result') }}" class="quiz-btn quiz-btn-primary quiz-btn-lg">View Results</a>
     </div>
 </div>
