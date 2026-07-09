@@ -9,7 +9,7 @@ env/
 # Database
 *.db
 *.sqlite3
-
+lear
 # OS / IDE
 .DS_Store
 .idea/
