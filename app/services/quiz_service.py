@@ -22,8 +22,10 @@ class QuizService:
 
         with get_db() as (_, c):
             c.execute(
-                'SELECT * FROM students WHERE lotname = %s AND password = %s',
-                (lotname.strip(), password),
+                '''SELECT * FROM students
+                   WHERE LOWER(REPLACE(TRIM(lotname), ' ', '')) = %s
+                     AND LOWER(REPLACE(TRIM(password), ' ', '')) = %s''',
+                (lotname, password),
             )
             team = c.fetchone()
             if not team:

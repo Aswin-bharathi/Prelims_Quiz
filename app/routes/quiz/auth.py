@@ -6,9 +6,9 @@ from app.services.quiz_service import QuizService
 @quiz_bp.route('/login', methods=['GET', 'POST'])
 def quiz_login():
     if request.method == 'POST':
-        lotname = request.form['lotname']
-        password = request.form['password']
-        entry_code = request.form['entry_code'].strip().upper()
+        lotname = request.form['lotname'].replace(' ', '').strip().lower()
+        password = request.form['password'].replace(' ', '').strip().lower()
+        entry_code = request.form['entry_code'].replace(' ', '').strip().upper()
 
         ok, msg, team_data = QuizService.authenticate(lotname, password, entry_code)
         if ok:

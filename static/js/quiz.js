@@ -238,5 +238,38 @@
         if (countdownEl && countdownEl.dataset.redirect) {
             initCountdown(countdownEl.dataset.redirect, parseInt(countdownEl.dataset.seconds || '3', 10));
         }
+        initPasswordToggle();
+        initLoginNormalization();
     });
+
+    function initPasswordToggle() {
+        const passwordInput = document.getElementById('password');
+        const toggle = document.getElementById('show-password');
+        if (!passwordInput || !toggle) return;
+
+        toggle.addEventListener('change', () => {
+            passwordInput.type = toggle.checked ? 'text' : 'password';
+        });
+    }
+
+    function initLoginNormalization() {
+        const form = document.getElementById('quiz-login-form');
+        if (!form) return;
+
+        form.addEventListener('submit', () => {
+            const lotname = document.getElementById('lotname');
+            const entryCode = document.getElementById('entry_code');
+            const password = document.getElementById('password');
+
+            if (lotname) {
+                lotname.value = lotname.value.replace(/\s+/g, '').toLowerCase();
+            }
+            if (entryCode) {
+                entryCode.value = entryCode.value.replace(/\s+/g, '').toUpperCase();
+            }
+            if (password) {
+                password.value = password.value.replace(/\s+/g, '').toLowerCase();
+            }
+        });
+    }
 })();
