@@ -34,6 +34,8 @@ def view_results():
     top_teams = ResultService.get_leaderboard(quiz_type_id, top_n)
     quiz_types = QuizTypeService.get_all()
     results_released = ResultService.get_announcement_state(quiz_type_id)
+    # NEW: status for every quiz type, so the page can show a badge per quiz
+    release_states = ResultService.get_all_announcement_states()
 
     return render_template(
         'admin/results.html',
@@ -41,6 +43,7 @@ def view_results():
         page=1, total_pages=1, search=search,
         quiz_type_id=quiz_type_id, quiz_types=quiz_types, total=total, top_n=top_n,
         results_released=results_released,
+        release_states=release_states,   # NEW
     )
 
 
@@ -49,6 +52,29 @@ def view_results():
 def release_results():
     quiz_type_id = request.form.get('quiz_type_id', type=int)
     top_n = request.form.get('top_n', 5, type=int)
+
+    if not quiz_type_id:
+        flash('Please select a quiz before releasing results.', 'danger')
+        return redirect(url_for('admin.view_results'))
+
+    if top_n < 1:
+        top_n = 5
+
     ResultService.set_announcement_state(True, top_n, quiz_type_id)
-    flash('Results have been released to students.', 'success')
+    flash(f'Results released for the selected quiz (top {top_n} teams).', 'success')
     return redirect(url_for('admin.view_results', quiz_type_id=quiz_type_id, top_n=top_n))
+
+
+# NEW ROUTE
+@admin_bp.route('/results/unrelease', methods=['POST'])
+@admin_login_required
+def unrelease_results():
+    quiz_type_id = request.form.get('quiz_type_id', type=int)
+
+    if not quiz_type_id:
+        flash('Please select a quiz to cancel release for.', 'danger')
+        return redirect(url_for('admin.view_results'))
+
+    ResultService.unset_announcement_state(quiz_type_id)
+    flash('Results release has been cancelled for the selected quiz.', 'success')
+    return redirect(url_for('admin.view_results', quiz_type_id=quiz_type_id))

@@ -36,11 +36,6 @@ class ResultService:
             key = ResultService._announcement_key('results_announced', quiz_type_id)
             c.execute('SELECT setting_value FROM settings WHERE setting_key = %s', (key,))
             row = c.fetchone()
-            if row and row['setting_value'] is not None:
-                return row['setting_value'] == '1'
-            fallback_key = ResultService._announcement_key('results_announced', None)
-            c.execute('SELECT setting_value FROM settings WHERE setting_key = %s', (fallback_key,))
-            row = c.fetchone()
             return bool(row and row['setting_value'] == '1')
 
     @staticmethod
@@ -54,16 +49,7 @@ class ResultService:
                     return int(row['setting_value'])
                 except (TypeError, ValueError):
                     pass
-            fallback_key = ResultService._announcement_key('results_top_n', None)
-            c.execute('SELECT setting_value FROM settings WHERE setting_key = %s', (fallback_key,))
-            row = c.fetchone()
-            if row and row['setting_value'] is not None:
-                try:
-                    return int(row['setting_value'])
-                except (TypeError, ValueError):
-                    pass
             return 5
-
     @staticmethod
     def is_team_selected(lotname, quiz_type_id=None, top_n=None):
         if not lotname:
@@ -185,3 +171,35 @@ class ResultService:
             df.to_excel(writer, index=False, sheet_name='Results')
         output.seek(0)
         return output
+    @staticmethod
+    def unset_announcement_state(quiz_type_id=None):
+        """Cancel/reset a release without touching top_n."""
+        with get_db() as (_, c):
+            released_key = ResultService._announcement_key('results_announced', quiz_type_id)
+            c.execute(
+                '''INSERT INTO settings (setting_key, setting_value) VALUES (%s, %s)
+                   ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)''',
+                (released_key, '0'),
+            )
+
+    @staticmethod
+    def get_all_announcement_states():
+        """Returns {quiz_type_id: {'released': bool, 'top_n': int}} for every quiz type
+        that has ever had a release toggled."""
+        with get_db() as (_, c):
+            c.execute(
+                "SELECT setting_key, setting_value FROM settings "
+                "WHERE setting_key LIKE 'results_announced:%'"
+            )
+            rows = c.fetchall()
+            states = {}
+            for row in rows:
+                try:
+                    qid = int(row['setting_key'].split(':', 1)[1])
+                except (IndexError, ValueError):
+                    continue
+                states[qid] = {
+                    'released': row['setting_value'] == '1',
+                    'top_n': ResultService.get_announcement_top_n(qid),
+                }
+            return states
