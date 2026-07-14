@@ -6,12 +6,18 @@ from threading import Timer
 
 
 def _bootstrap_venv():
-    if os.environ.get('VIRTUAL_ENV'):
+    if os.environ.get("VIRTUAL_ENV"):
         return
-    venv_python = Path(__file__).resolve().parent / 'venv' / 'bin' / 'python3'
-    if venv_python.exists():
-        os.execv(str(venv_python), [str(venv_python), __file__, *sys.argv[1:]])
 
+    root = Path(__file__).resolve().parent
+
+    if os.name == "nt":  # Windows
+        venv_python = root / "venv" / "Scripts" / "python.exe"
+    else:  # Linux/macOS
+        venv_python = root / "venv" / "bin" / "python3"
+
+    if venv_python.exists() and Path(sys.executable) != venv_python:
+        os.execv(str(venv_python), [str(venv_python), __file__, *sys.argv[1:]])
 
 _bootstrap_venv()
 

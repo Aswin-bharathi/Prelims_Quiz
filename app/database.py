@@ -19,4 +19,11 @@ def get_db():
 
 
 def get_connection():
-    return mysql.connector.connect(**Config.db_config())
+    try:
+        conn = mysql.connector.connect(**Config.db_config())
+        print("✅ Connected Successfully")
+        return conn
+    except mysql.connector.Error as e:
+        print("ERROR NO :", e.errno)
+        print("ERROR MSG:", e.msg)
+        raise
