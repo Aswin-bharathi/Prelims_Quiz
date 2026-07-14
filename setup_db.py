@@ -33,7 +33,7 @@ def create_database():
         # Create students table
         cursor.execute('''CREATE TABLE IF NOT EXISTS students (
             id INT AUTO_INCREMENT PRIMARY KEY,
-            lotname VARCHAR(255) NOT NULL UNIQUE,
+            lotname VARCHAR(191) NOT NULL UNIQUE,
             password VARCHAR(255) NOT NULL,
             quiz_status_tech VARCHAR(50) DEFAULT 'not_attempted',
             quiz_status_software VARCHAR(50) DEFAULT 'not_attempted'
@@ -74,7 +74,7 @@ def create_database():
         # Create admins table
         cursor.execute('''CREATE TABLE IF NOT EXISTS admins (
             id INT AUTO_INCREMENT PRIMARY KEY,
-            username VARCHAR(255) NOT NULL UNIQUE,
+            username VARCHAR(191) NOT NULL UNIQUE,
             password VARCHAR(255) NOT NULL
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4''')
         logger.info("Table 'admins' created")

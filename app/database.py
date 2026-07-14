@@ -5,7 +5,7 @@ from app.config import Config
 
 @contextmanager
 def get_db():
-    conn = mysql.connector.connect(**Config.db_config())
+    conn = mysql.connector.connect(**Config.db_config(),use_pure=True)
     cursor = conn.cursor(dictionary=True)
     try:
         yield conn, cursor
@@ -20,7 +20,7 @@ def get_db():
 
 def get_connection():
     try:
-        conn = mysql.connector.connect(**Config.db_config())
+        conn = mysql.connector.connect(**Config.db_config(),use_pure=True)
         print("✅ Connected Successfully")
         return conn
     except mysql.connector.Error as e:

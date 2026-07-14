@@ -24,7 +24,7 @@ SCHEMA_SQL = [
 
     '''CREATE TABLE IF NOT EXISTS students (
         id INT AUTO_INCREMENT PRIMARY KEY,
-        lotname VARCHAR(255) NOT NULL UNIQUE,
+        lotname VARCHAR(191) NOT NULL UNIQUE,
         password VARCHAR(255) NOT NULL,
         all_quizzes BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -86,7 +86,7 @@ SCHEMA_SQL = [
 
     '''CREATE TABLE IF NOT EXISTS admins (
         id INT AUTO_INCREMENT PRIMARY KEY,
-        username VARCHAR(255) NOT NULL UNIQUE,
+        username VARCHAR(191) NOT NULL UNIQUE,
         password VARCHAR(255) NOT NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci''',
 ]
