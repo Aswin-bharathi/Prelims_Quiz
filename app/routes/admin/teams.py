@@ -110,3 +110,20 @@ def sync_teams():
             flash(f'Error: {err}', 'error')
         return redirect(url_for('admin.show_teams'))
     return render_template('admin/teams/sync.html')
+
+# teams.py — merge into the existing file, don't duplicate imports
+
+@admin_bp.route('/teams/<int:team_id>/quiz-status/<int:quiz_type_id>/toggle', methods=['POST'])
+@admin_login_required
+def toggle_quiz_status(team_id, quiz_type_id):
+    ok, msg = TeamService.toggle_quiz_status(team_id, quiz_type_id)
+    flash(msg, 'success' if ok else 'error')
+    return redirect(url_for('admin.show_teams', **request.args))
+
+
+@admin_bp.route('/teams/delete-all', methods=['POST'])
+@admin_login_required
+def delete_all_teams():
+    ok, msg = TeamService.delete_all_teams()
+    flash(msg, 'success' if ok else 'error')
+    return redirect(url_for('admin.show_teams'))

@@ -13,48 +13,76 @@ class TeamService:
     def get_teams(page=1, per_page=10, search='', quiz_type_id=None, status_filter=None):
         offset = (page - 1) * per_page
         with get_db() as (_, c):
-            base = '''
-                FROM students s
-                LEFT JOIN team_quiz_status tqs ON tqs.student_id = s.id
-                LEFT JOIN quiz_types qt ON qt.id = tqs.quiz_type_id
-                WHERE 1=1
-            '''
+            base = 'FROM students s WHERE 1=1'
             params = []
+
             if search:
                 base += ' AND s.lotname LIKE %s'
                 params.append(f'%{search}%')
-            if quiz_type_id:
-                base += ' AND (s.all_quizzes = 1 OR tqs.quiz_type_id = %s)'
-                params.append(quiz_type_id)
-            if status_filter and quiz_type_id:
-                base += ' AND tqs.status = %s'
-                params.append(status_filter)
 
-            c.execute(f'SELECT COUNT(DISTINCT s.id) AS cnt {base}', params)
+            if quiz_type_id:
+                base += '''
+                    AND (s.all_quizzes = 1 OR EXISTS (
+                        SELECT 1 FROM team_quiz_assignments tqa
+                        WHERE tqa.student_id = s.id AND tqa.quiz_type_id = %s
+                    ))
+                '''
+                params.append(quiz_type_id)
+
+            if status_filter and quiz_type_id:
+                if status_filter == 'incomplete':
+                    base += '''
+                        AND NOT EXISTS (
+                            SELECT 1 FROM team_quiz_status tqs
+                            WHERE tqs.student_id = s.id AND tqs.quiz_type_id = %s AND tqs.status = 'completed'
+                        )
+                    '''
+                    params.append(quiz_type_id)
+                else:
+                    base += '''
+                        AND EXISTS (
+                            SELECT 1 FROM team_quiz_status tqs
+                            WHERE tqs.student_id = s.id AND tqs.quiz_type_id = %s AND tqs.status = %s
+                        )
+                    '''
+                    params.append(quiz_type_id)
+                    params.append(status_filter)
+
+            c.execute(f'SELECT COUNT(*) AS cnt {base}', params)
             total = c.fetchone()['cnt']
 
             c.execute(
-                f'''SELECT DISTINCT s.id, s.lotname, s.password, s.all_quizzes, s.created_at
+                f'''SELECT s.id, s.lotname, s.password, s.all_quizzes, s.created_at
                     {base} ORDER BY s.lotname ASC LIMIT %s OFFSET %s''',
                 params + [per_page, offset],
             )
             teams = c.fetchall()
 
             for team in teams:
-                if quiz_type_id:
-                    c.execute(
-                        '''SELECT qt.id, qt.name, tqs.status FROM team_quiz_status tqs
-                           JOIN quiz_types qt ON qt.id = tqs.quiz_type_id
-                           WHERE tqs.student_id = %s AND qt.id = %s ORDER BY qt.name''',
-                        (team['id'], quiz_type_id),
-                    )
-                    team['quiz_statuses'] = c.fetchall()
+                if team['all_quizzes']:
+                    query = '''SELECT qt.id, qt.name, COALESCE(tqs.status, 'not_attempted') AS status
+                            FROM quiz_types qt
+                            LEFT JOIN team_quiz_status tqs
+                                ON tqs.student_id = %s AND tqs.quiz_type_id = qt.id
+                            WHERE 1=1'''
+                    qparams = [team['id']]
                 else:
-                    team['quiz_statuses'] = []
+                    query = '''SELECT qt.id, qt.name, COALESCE(tqs.status, 'not_attempted') AS status
+                            FROM team_quiz_assignments tqa
+                            JOIN quiz_types qt ON qt.id = tqa.quiz_type_id
+                            LEFT JOIN team_quiz_status tqs
+                                ON tqs.student_id = tqa.student_id AND tqs.quiz_type_id = qt.id
+                            WHERE tqa.student_id = %s'''
+                    qparams = [team['id']]
+                if quiz_type_id:
+                    query += ' AND qt.id = %s'
+                    qparams.append(quiz_type_id)
+                query += ' ORDER BY qt.name'
+                c.execute(query, qparams)
+                team['quiz_statuses'] = c.fetchall()
 
             total_pages = max(1, (total + per_page - 1) // per_page)
             return teams, total, total_pages
-
     @staticmethod
     def get_by_id(student_id):
         with get_db() as (_, c):
@@ -316,3 +344,26 @@ class TeamService:
                 existing.add(lotname)
                 added += 1
         return True, None, added, skipped
+    @staticmethod
+    def toggle_quiz_status(student_id, quiz_type_id):
+        with get_db() as (_, c):
+            c.execute(
+                'SELECT status FROM team_quiz_status WHERE student_id = %s AND quiz_type_id = %s',
+                (student_id, quiz_type_id),
+            )
+            row = c.fetchone()
+            if not row:
+                return False, 'Status record not found.'
+            new_status = 'not_attempted' if row['status'] == 'completed' else 'completed'
+            c.execute(
+                '''UPDATE team_quiz_status SET status = %s, session_token = NULL
+                WHERE student_id = %s AND quiz_type_id = %s''',
+                (new_status, student_id, quiz_type_id),
+            )
+            return True, f'Status updated to {new_status}.'
+
+    @staticmethod
+    def delete_all_teams():
+        with get_db() as (_, c):
+            c.execute('DELETE FROM students')
+            return True, 'All teams deleted.'
