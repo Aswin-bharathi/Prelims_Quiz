@@ -344,6 +344,7 @@ class TeamService:
                 existing.add(lotname)
                 added += 1
         return True, None, added, skipped
+        
     @staticmethod
     def toggle_quiz_status(student_id, quiz_type_id):
         with get_db() as (_, c):
@@ -352,8 +353,17 @@ class TeamService:
                 (student_id, quiz_type_id),
             )
             row = c.fetchone()
+
             if not row:
-                return False, 'Status record not found.'
+                # No record yet for this team/quiz-type pair — create it as completed,
+                # since the toggle action means the admin is turning it ON.
+                c.execute(
+                    '''INSERT INTO team_quiz_status (student_id, quiz_type_id, status, session_token)
+                    VALUES (%s, %s, %s, NULL)''',
+                    (student_id, quiz_type_id, 'completed'),
+                )
+                return True, 'Status updated to completed.'
+
             new_status = 'not_attempted' if row['status'] == 'completed' else 'completed'
             c.execute(
                 '''UPDATE team_quiz_status SET status = %s, session_token = NULL
