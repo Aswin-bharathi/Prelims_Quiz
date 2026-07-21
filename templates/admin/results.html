@@ -3,44 +3,80 @@
 {% block page_title %}Quiz Results & Leaderboard{% endblock %}
 
 {% block content %}
-<div class="mb-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-    <form method="GET" class="flex flex-col sm:flex-row gap-3 flex-1">
-        <input type="text" name="search" value="{{ search }}" placeholder="Search team..." class="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white text-sm flex-1 max-w-xs focus:ring-2 focus:ring-brand-500 outline-none">
-        <button type="submit" class="px-4 py-2 rounded-xl bg-slate-800 dark:bg-slate-700 text-white text-sm font-semibold hover:bg-slate-700 dark:hover:bg-slate-650 transition">Search</button>
-    </form>
-    <div class="flex flex-wrap gap-2">
-        <form method="POST" action="{{ url_for('admin.release_results') }}" class="flex flex-wrap items-center gap-2">
-            <select name="quiz_type_id" required
-                class="px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white text-sm">
-                <option value="" disabled selected>Select quiz to release</option>
-                {% for qt in quiz_types %}
-                <option value="{{ qt.id }}">{{ qt.name }}</option>
-                {% endfor %}
-            </select>
 
-            <input type="number" name="top_n" min="1" max="100" value="{{ top_n }}" required
-                class="w-20 px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white text-sm"
-                title="Top N teams to release">
+{# ── Unified Control Bar ── #}
+<div class="mb-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-4">
+    <div class="flex flex-wrap items-center gap-3">
 
-            <button type="submit"
-                class="px-4 py-2 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-500 transition">
+        <select id="quizTypeSelect"
+            class="px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white text-sm min-w-[180px]">
+            <option value="">All Quizzes</option>
+            {% for qt in quiz_types %}
+            <option value="{{ qt.id }}" {% if quiz_type_id == qt.id %}selected{% endif %}>{{ qt.name }}</option>
+            {% endfor %}
+        </select>
+
+        <input type="text" id="searchInput" value="{{ search }}"
+            placeholder="Search team..."
+            class="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white text-sm w-44 focus:ring-2 focus:ring-brand-500 outline-none">
+
+        <input type="number" id="topNInput" min="1" max="100" value="{{ top_n }}"
+            class="w-20 px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-white text-sm"
+            title="Top N teams">
+
+        <button type="button" id="applyFilterBtn"
+            class="px-4 py-2 rounded-xl bg-slate-800 dark:bg-slate-700 text-white text-sm font-semibold hover:bg-slate-700 transition">
+            Filter
+        </button>
+
+        <div class="h-8 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
+
+        {# Release #}
+        <form id="releaseForm" method="POST" action="{{ url_for('admin.release_results') }}">
+            <input type="hidden" name="quiz_type_id" id="releaseQuizType" value="{{ quiz_type_id or '' }}">
+            <input type="hidden" name="top_n" id="releaseTopN" value="{{ top_n }}">
+            <button type="submit" id="releaseBtn"
+                class="px-4 py-2 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-500 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                {% if not quiz_type_id %}disabled{% endif %}>
                 Release Results
             </button>
         </form>
 
-        <a href="?format=word&top_n={{ top_n }}" class="px-4 py-2 rounded-xl bg-slate-800 dark:bg-slate-700 text-white text-sm font-semibold hover:bg-slate-700 dark:hover:bg-slate-650 transition">Export Top List (Word)</a>
-        <a href="?format=excel&search={{ search }}&top_n={{ top_n }}" class="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 dark:text-slate-200 transition">Export Excel</a>
+        <div class="h-8 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
+
+        {# Export #}
+        <button type="button" id="exportWordBtn"
+            class="px-4 py-2 rounded-xl bg-slate-800 dark:bg-slate-700 text-white text-sm font-semibold hover:bg-slate-700 dark:hover:bg-slate-600 transition">
+            Export Word
+        </button>
+        <button type="button" id="exportExcelBtn"
+            class="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition">
+            Export Excel
+        </button>
+
+        {% if search or quiz_type_id %}
+        <a href="{{ url_for('admin.view_results') }}"
+            class="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition ml-auto">
+            Clear
+        </a>
+        {% endif %}
     </div>
 </div>
 
+{# ── Release Status Badges ── #}
 <div class="mb-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm p-4">
-    <h3 class="font-bold text-sm text-slate-800 dark:text-white mb-3">Release Status by Quiz Type</h3>
+    <h3 class="font-bold text-sm text-slate-800 dark:text-white mb-3">Release Status</h3>
     <div class="flex flex-wrap gap-2">
         {% for qt in quiz_types %}
         {% set state = release_states.get(qt.id) %}
         <div class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border
-            {% if state and state.released %}bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-900 dark:text-emerald-300
-            {% else %}bg-slate-50 border-slate-200 text-slate-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400{% endif %}">
+            {% if state and state.released %}
+                bg-emerald-50 border-emerald-200 text-emerald-700
+                dark:bg-emerald-950/30 dark:border-emerald-900 dark:text-emerald-300
+            {% else %}
+                bg-slate-50 border-slate-200 text-slate-500
+                dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400
+            {% endif %}">
             <span>
                 {{ qt.name }} —
                 {% if state and state.released %}Released (Top {{ state.top_n }}){% else %}Not released{% endif %}
@@ -48,25 +84,49 @@
             {% if state and state.released %}
             <form method="POST" action="{{ url_for('admin.unrelease_results') }}" class="inline">
                 <input type="hidden" name="quiz_type_id" value="{{ qt.id }}">
-                <button type="submit" class="ml-1 px-2 py-0.5 rounded-full bg-red-600 text-white text-xs font-semibold hover:bg-red-500 transition">Cancel Release</button>
+                <button type="submit"
+                    class="ml-1 px-2 py-0.5 rounded-full bg-red-600 text-white text-xs font-semibold hover:bg-red-500 transition">
+                    Cancel
+                </button>
             </form>
             {% endif %}
         </div>
         {% endfor %}
+        {% if not quiz_types %}
+        <p class="text-xs text-slate-400">No quiz types found.</p>
+        {% endif %}
     </div>
 </div>
 
+{# ── Top N Leaderboard Cards ── #}
 {% if top_teams %}
 <div class="mb-8">
     <h3 class="text-lg font-bold mb-4 flex items-center gap-2 text-slate-800 dark:text-white">
-        <span class="text-2xl">🏆</span> Top {{ top_n }} Teams
+        <span class="text-2xl">🏆</span>
+        Top {{ top_n }} Teams
+        {% if quiz_type_id %}
+            {% for qt in quiz_types %}
+                {% if qt.id == quiz_type_id %}
+                    <span class="text-sm font-normal text-slate-500 dark:text-slate-400">— {{ qt.name }}</span>
+                {% endif %}
+            {% endfor %}
+        {% else %}
+            <span class="text-sm font-normal text-slate-500 dark:text-slate-400">— All Quizzes</span>
+        {% endif %}
     </h3>
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {% for team in top_teams %}
-        <div class="bg-white dark:bg-slate-900 rounded-2xl border-2 {% if team.rank == 1 %}border-amber-400{% else %}border-slate-200 dark:border-slate-800{% endif %} p-5 shadow-sm text-center relative overflow-hidden">
-            {% if team.rank == 1 %}<div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 to-yellow-300"></div>{% endif %}
+        <div class="bg-white dark:bg-slate-900 rounded-2xl border-2
+            {% if team.rank == 1 %}border-amber-400{% else %}border-slate-200 dark:border-slate-800{% endif %}
+            p-5 shadow-sm text-center relative overflow-hidden">
+            {% if team.rank == 1 %}
+            <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 to-yellow-300"></div>
+            {% endif %}
             <div class="w-10 h-10 rounded-full mx-auto mb-3 flex items-center justify-center font-bold text-lg
-                {% if team.rank == 1 %}bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400{% elif team.rank == 2 %}bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300{% elif team.rank == 3 %}bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400{% else %}bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400{% endif %}">
+                {% if team.rank == 1 %}bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400
+                {% elif team.rank == 2 %}bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300
+                {% elif team.rank == 3 %}bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400
+                {% else %}bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400{% endif %}">
                 #{{ team.rank }}
             </div>
             <p class="font-bold text-sm truncate text-slate-800 dark:text-slate-200">{{ team.lotname }}</p>
@@ -77,10 +137,35 @@
         {% endfor %}
     </div>
 </div>
+{% else %}
+<div class="mb-8 flex items-center gap-3 px-5 py-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-sm">
+    <span class="text-xl">📭</span>
+    No leaderboard data for the current filter.
+</div>
 {% endif %}
 
+{# ── Full Rankings Table ── #}
 <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-    <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800"><h3 class="font-bold text-slate-800 dark:text-white">All Rankings</h3></div>
+    <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+        <h3 class="font-bold text-slate-800 dark:text-white">
+            {% if quiz_type_id %}
+                Top {{ top_n }} Rankings
+            {% else %}
+                All Rankings
+            {% endif %}
+            <span class="ml-2 text-xs font-normal text-slate-400">({{ total }} entries)</span>
+        </h3>
+        {% if quiz_type_id %}
+            {% for qt in quiz_types %}
+                {% if qt.id == quiz_type_id %}
+                <span class="px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-semibold">
+                    Filtered: {{ qt.name }}
+                </span>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+    </div>
+    <!-- rest of table unchanged -->
     <div class="overflow-x-auto max-h-[600px] overflow-y-auto">
         <table class="w-full text-sm">
             <thead class="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-10">
@@ -94,22 +179,110 @@
             </thead>
             <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                 {% for r in results %}
-                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 text-slate-800 dark:text-slate-200 {% if r.rank <= top_n %}bg-amber-50/30 dark:bg-amber-950/10{% endif %}">
-                    <td class="px-6 py-4 font-bold">{{ r.rank }}</td>
+                <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 text-slate-800 dark:text-slate-200
+                    {% if r.rank <= top_n %}bg-amber-50/30 dark:bg-amber-950/10{% endif %}">
+                    <td class="px-6 py-4 font-bold">
+                        {% if r.rank == 1 %}🥇{% elif r.rank == 2 %}🥈{% elif r.rank == 3 %}🥉{% else %}{{ r.rank }}{% endif %}
+                    </td>
                     <td class="px-6 py-4 font-semibold">{{ r.lotname }}</td>
-                    <td class="px-6 py-4"><span class="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 font-semibold">{{ r.quiz_type_name }}</span></td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 font-semibold">
+                            {{ r.quiz_type_name }}
+                        </span>
+                    </td>
                     <td class="px-6 py-4 font-bold text-brand-600 dark:text-brand-400">{{ r.score }}/{{ r.total_questions }}</td>
                     <td class="px-6 py-4 font-mono text-xs">{{ r.duration_formatted }}</td>
                 </tr>
                 {% else %}
-                <tr><td colspan="5" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900">No results yet.</td></tr>
+                <tr>
+                    <td colspan="5" class="px-6 py-12 text-center text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900">
+                        No results found{% if search %} for "<strong>{{ search }}</strong>"{% endif %}.
+                    </td>
+                </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 </div>
+
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/results.js') }}"></script>
+<script>
+(function () {
+    var BASE      = {{ url_for('admin.view_results') | tojson }};
+    var quizSel   = document.getElementById('quizTypeSelect');
+    var searchInp = document.getElementById('searchInput');
+    var topNInp   = document.getElementById('topNInput');
+    var relQT     = document.getElementById('releaseQuizType');
+    var relTopN   = document.getElementById('releaseTopN');
+    var relBtn    = document.getElementById('releaseBtn');
+    var wordBtn   = document.getElementById('exportWordBtn');
+    var excelBtn  = document.getElementById('exportExcelBtn');
+    var filterBtn = document.getElementById('applyFilterBtn');
+
+    function buildParams(extra) {
+        var p = {};
+        if (quizSel.value)            p.quiz_type_id = quizSel.value;
+        if (searchInp.value.trim())   p.search       = searchInp.value.trim();
+        if (topNInp.value)            p.top_n        = topNInp.value;
+        if (extra) {
+            for (var k in extra) p[k] = extra[k];
+        }
+        var qs = [];
+        for (var key in p) {
+            qs.push(encodeURIComponent(key) + '=' + encodeURIComponent(p[key]));
+        }
+        return qs.length ? '?' + qs.join('&') : '';
+    }
+
+    function navigateFilter() {
+        window.location.href = BASE + buildParams();
+    }
+
+    function syncRelease() {
+        relQT.value   = quizSel.value;
+        relTopN.value = topNInp.value || '5';
+        relBtn.disabled = !quizSel.value;
+    }
+
+    // Auto-filter on quiz dropdown change
+    quizSel.addEventListener('change', function () {
+        syncRelease();
+        navigateFilter();
+    });
+
+    // Filter button for search + top_n
+    filterBtn.addEventListener('click', navigateFilter);
+
+    // Enter key in search box
+    searchInp.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            navigateFilter();
+        }
+    });
+
+    // Top N change
+    topNInp.addEventListener('change', function () {
+        syncRelease();
+        navigateFilter();
+    });
+
+    // Export Word – direct download
+    wordBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        window.location.href = BASE + buildParams({ format: 'word' });
+    });
+
+    // Export Excel – direct download
+    excelBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        window.location.href = BASE + buildParams({ format: 'excel' });
+    });
+
+    // Sync on load
+    syncRelease();
+})();
+</script>
 {% endblock %}

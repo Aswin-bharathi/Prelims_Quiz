@@ -59,81 +59,133 @@ class ResultService:
         return any(team['lotname'] == lotname for team in leaderboard)
 
     @staticmethod
-    def get_results(page=1, per_page=10, search='', quiz_type_id=None):
+    def get_ranked_results(page=1, per_page=10, search='', quiz_type_id=None, top_n=None):
         offset = (page - 1) * per_page
         with get_db() as (_, c):
-            base = '''
+            tables = '''
                 FROM results r
                 JOIN students s ON s.id = r.student_id
                 JOIN quiz_types qt ON qt.id = r.quiz_type_id
-                WHERE 1=1
             '''
+            where_clause = 'WHERE 1=1'
             params = []
-            if quiz_type_id:
-                base += ' AND r.quiz_type_id = %s'
+
+            if quiz_type_id is not None:
+                where_clause += ' AND r.quiz_type_id = %s'
                 params.append(quiz_type_id)
             if search:
-                base += ' AND r.lotname LIKE %s'
+                where_clause += ' AND s.lotname LIKE %s'
                 params.append(f'%{search}%')
 
-            c.execute(f'SELECT COUNT(*) AS cnt {base}', params)
-            total = c.fetchone()['cnt']
+            # Build the ranked subquery
+            ranked_subquery = f'''
+                SELECT
+                    r.id, r.student_id, r.quiz_type_id, r.score, r.duration,
+                    r.total_questions, r.completed_at,
+                    qt.name AS quiz_type_name,
+                    s.lotname,
+                    DENSE_RANK() OVER (
+                        PARTITION BY r.quiz_type_id
+                        ORDER BY r.score DESC, r.duration ASC, s.lotname ASC
+                    ) as `rank`
+                {tables}
+                {where_clause}
+            '''
 
-            c.execute(
-                f'''SELECT r.*, qt.name AS quiz_type_name, s.lotname
-                    {base}
-                    ORDER BY r.score DESC, r.duration ASC, r.lotname ASC
-                    LIMIT %s OFFSET %s''',
-                params + [per_page, offset],
-            )
+            # If top_n is set, wrap with another filter to only keep rank <= top_n
+            if top_n is not None:
+                top_n_params = params.copy()
+                count_query = f'''
+                    SELECT COUNT(*) AS cnt FROM (
+                        SELECT 1 FROM ({ranked_subquery}) AS ranked
+                        WHERE ranked.`rank` <= %s
+                    ) AS limited
+                '''
+                c.execute(count_query, top_n_params + [top_n])
+                total = c.fetchone()['cnt']
+
+                query = f'''
+                    SELECT * FROM ({ranked_subquery}) AS ranked
+                    WHERE ranked.`rank` <= %s
+                    ORDER BY ranked.quiz_type_name ASC, ranked.`rank` ASC, ranked.lotname ASC
+                    LIMIT %s OFFSET %s
+                '''
+                c.execute(query, params + [top_n, per_page, offset])
+            else:
+                c.execute(f'SELECT COUNT(*) AS cnt {tables} {where_clause}', params)
+                total = c.fetchone()['cnt']
+
+                query = f'''
+                    SELECT ranked.* FROM (
+                        SELECT
+                            r.id, r.student_id, r.quiz_type_id, r.score, r.duration,
+                            r.total_questions, r.completed_at,
+                            qt.name AS quiz_type_name,
+                            s.lotname,
+                            DENSE_RANK() OVER (
+                                PARTITION BY r.quiz_type_id
+                                ORDER BY r.score DESC, r.duration ASC, s.lotname ASC
+                            ) as `rank`
+                        {tables}
+                        {where_clause}
+                    ) AS ranked
+                    ORDER BY ranked.quiz_type_name ASC, ranked.`rank` ASC, ranked.lotname ASC
+                    LIMIT %s OFFSET %s
+                '''
+                c.execute(query, params + [per_page, offset])
+
             results = c.fetchall()
-
             for r in results:
                 r['duration_formatted'] = format_duration(r['duration'])
 
             total_pages = max(1, (total + per_page - 1) // per_page)
             return results, total, total_pages
-
+        
     @staticmethod
     def get_leaderboard(quiz_type_id=None, limit=5):
         with get_db() as (_, c):
-            query = '''
-                SELECT r.lotname, r.score, r.duration, qt.name AS quiz_type_name,
-                       r.quiz_type_id, r.total_questions
+            base_query = '''
+                SELECT
+                    s.lotname, r.score, r.duration, qt.name AS quiz_type_name,
+                    r.quiz_type_id, r.total_questions,
+                    DENSE_RANK() OVER (ORDER BY r.score DESC, r.duration ASC, s.lotname ASC) as `rank`
                 FROM results r
                 JOIN quiz_types qt ON qt.id = r.quiz_type_id
+                JOIN students s ON s.id = r.student_id
             '''
             params = []
-            if quiz_type_id:
-                query += ' WHERE r.quiz_type_id = %s'
+            if quiz_type_id is not None:
+                base_query += ' WHERE r.quiz_type_id = %s'
                 params.append(quiz_type_id)
-            query += ' ORDER BY r.score DESC, r.duration ASC, r.lotname ASC LIMIT %s'
+
+            query = f'''
+                SELECT * FROM (
+                    {base_query}
+                ) AS ranked_results
+                ORDER BY `rank` ASC, lotname ASC
+                LIMIT %s
+            '''
             params.append(limit)
             c.execute(query, params)
             rows = c.fetchall()
-            for i, row in enumerate(rows):
-                if i > 0 and row['score'] == rows[i-1]['score'] and row['duration'] == rows[i-1]['duration']:
-                    row['rank'] = rows[i-1]['rank']
-                else:
-                    row['rank'] = i + 1
+            for row in rows:
                 row['duration_formatted'] = format_duration(row['duration'])
             return rows
-
-    @staticmethod
-    def get_ranked_results(page=1, per_page=10, search='', quiz_type_id=None):
-        results, total, total_pages = ResultService.get_results(page, per_page, search, quiz_type_id)
-        for i, r in enumerate(results):
-            if i > 0 and r['score'] == results[i-1]['score'] and r['duration'] == results[i-1]['duration']:
-                r['rank'] = results[i-1]['rank']
-            else:
-                r['rank'] = i + 1
-        return results, total, total_pages
 
     @staticmethod
     def export_word(quiz_type_id=None, top_n=5):
         top = ResultService.get_leaderboard(quiz_type_id, top_n)
         doc = Document()
-        title = f'Top {top_n} Teams - All Quizzes' if not quiz_type_id else f'Top {top_n} Teams - {top[0]["quiz_type_name"] if top else "Quiz"}'
+
+        title = f'Top {top_n} Teams - All Quizzes'
+        if quiz_type_id:
+            if top:
+                title = f'Top {top_n} Teams - {top[0]["quiz_type_name"]}'
+            else:
+                from app.services.quiz_type_service import QuizTypeService
+                quiz_type = QuizTypeService.get_by_id(quiz_type_id)
+                title = f'Top {top_n} Teams - {quiz_type["name"] if quiz_type else "Selected Quiz"}'
+
         doc.add_heading(title, 0)
         table = doc.add_table(rows=1, cols=5)
         table.style = 'Table Grid'
@@ -153,24 +205,35 @@ class ResultService:
         return output
 
     @staticmethod
-    def export_excel(quiz_type_id=None, search=''):
-        results, _, _ = ResultService.get_results(page=1, per_page=100000, search=search, quiz_type_id=quiz_type_id)
+    def export_excel(quiz_type_id=None, search='', top_n=None):
+        # The `top_n` filter should only apply when a specific quiz is selected,
+        # matching the behavior of the main results table on the UI.
+        effective_top_n = top_n if quiz_type_id is not None else None
+
+        results, _, _ = ResultService.get_ranked_results(
+            page=1,
+            per_page=100000,
+            search=search,
+            quiz_type_id=quiz_type_id,
+            top_n=effective_top_n
+        )
         df = pd.DataFrame([
             {
-                'Rank': i + 1,
+                'Rank': r['rank'],
                 'Team': r['lotname'],
                 'Quiz Type': r['quiz_type_name'],
                 'Score': r['score'],
                 'Total Questions': r['total_questions'],
                 'Duration': r['duration_formatted'],
             }
-            for i, r in enumerate(results)
+            for r in results
         ])
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
             df.to_excel(writer, index=False, sheet_name='Results')
         output.seek(0)
         return output
+        
     @staticmethod
     def unset_announcement_state(quiz_type_id=None):
         """Cancel/reset a release without touching top_n."""

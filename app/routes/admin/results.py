@@ -6,6 +6,8 @@ from app.services.result_service import ResultService
 from app.services.quiz_type_service import QuizTypeService
 
 
+# result.py - only change the view_results route
+
 @admin_bp.route('/results')
 @admin_login_required
 def view_results():
@@ -22,19 +24,22 @@ def view_results():
         return response
 
     if fmt == 'excel':
-        output = ResultService.export_excel(quiz_type_id, search)
+        output = ResultService.export_excel(quiz_type_id, search, top_n=top_n)
         response = make_response(output.getvalue())
         response.headers['Content-Disposition'] = 'attachment; filename=results.xlsx'
         response.headers['Content-type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         return response
 
+    # When a specific quiz is selected, limit table rows to top_n
+    # When no quiz selected (all quizzes), show everything
+    table_limit = top_n if quiz_type_id else 1000000
+
     results, total, total_pages = ResultService.get_ranked_results(
-        page=1, per_page=1000000, search=search, quiz_type_id=quiz_type_id,
+        page=1, per_page=table_limit, search=search, quiz_type_id=quiz_type_id,top_n=top_n if quiz_type_id else None, 
     )
     top_teams = ResultService.get_leaderboard(quiz_type_id, top_n)
     quiz_types = QuizTypeService.get_all()
     results_released = ResultService.get_announcement_state(quiz_type_id)
-    # NEW: status for every quiz type, so the page can show a badge per quiz
     release_states = ResultService.get_all_announcement_states()
 
     return render_template(
@@ -43,7 +48,7 @@ def view_results():
         page=1, total_pages=1, search=search,
         quiz_type_id=quiz_type_id, quiz_types=quiz_types, total=total, top_n=top_n,
         results_released=results_released,
-        release_states=release_states,   # NEW
+        release_states=release_states,
     )
 
 
