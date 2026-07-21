@@ -210,7 +210,7 @@
 {% block scripts %}
 <script>
 (function () {
-    var BASE      = {{ url_for('admin.view_results') | tojson }};
+    var BASE = "{{ url_for('admin.view_results') }}";
     var quizSel   = document.getElementById('quizTypeSelect');
     var searchInp = document.getElementById('searchInput');
     var topNInp   = document.getElementById('topNInput');
