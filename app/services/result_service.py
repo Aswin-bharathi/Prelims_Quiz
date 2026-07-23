@@ -50,6 +50,7 @@ class ResultService:
                 except (TypeError, ValueError):
                     pass
             return 5
+
     @staticmethod
     def is_team_selected(lotname, quiz_type_id=None, top_n=None):
         if not lotname:
@@ -61,116 +62,134 @@ class ResultService:
     @staticmethod
     def get_ranked_results(page=1, per_page=10, search='', quiz_type_id=None, top_n=None):
         offset = (page - 1) * per_page
+
         with get_db() as (_, c):
-            tables = '''
-                FROM results r
-                JOIN students s ON s.id = r.student_id
-                JOIN quiz_types qt ON qt.id = r.quiz_type_id
-            '''
-            where_clause = 'WHERE 1=1'
+
+            where_clause = "WHERE 1=1"
             params = []
 
             if quiz_type_id is not None:
-                where_clause += ' AND r.quiz_type_id = %s'
+                where_clause += " AND r.quiz_type_id = %s"
                 params.append(quiz_type_id)
+
             if search:
-                where_clause += ' AND s.lotname LIKE %s'
-                params.append(f'%{search}%')
+                where_clause += " AND s.lotname LIKE %s"
+                params.append(f"%{search}%")
 
-            # Build the ranked subquery
-            ranked_subquery = f'''
+            # NOTE: Ranking is computed in Python, not via MySQL session
+            # variables (@rank := ...). That pattern reads and writes user
+            # variables within the same SELECT list, and MySQL does not
+            # guarantee left-to-right evaluation order for that - it
+            # "usually" works but can silently break depending on the query
+            # plan, join order, or indexes used. Sorting is reliable in SQL;
+            # ranking/filtering/pagination is done here instead, where
+            # order is guaranteed.
+            base_query = f"""
                 SELECT
-                    r.id, r.student_id, r.quiz_type_id, r.score, r.duration,
-                    r.total_questions, r.completed_at,
+                    r.id,
+                    r.student_id,
+                    r.quiz_type_id,
+                    r.score,
+                    r.duration,
+                    r.total_questions,
+                    r.completed_at,
                     qt.name AS quiz_type_name,
-                    s.lotname,
-                    DENSE_RANK() OVER (
-                        PARTITION BY r.quiz_type_id
-                        ORDER BY r.score DESC, r.duration ASC, s.lotname ASC
-                    ) as `rank`
-                {tables}
+                    s.lotname
+                FROM results r
+                JOIN students s
+                    ON s.id = r.student_id
+                JOIN quiz_types qt
+                    ON qt.id = r.quiz_type_id
                 {where_clause}
-            '''
+                ORDER BY
+                    r.quiz_type_id,
+                    r.score DESC,
+                    r.duration ASC,
+                    s.lotname ASC
+            """
 
-            # If top_n is set, wrap with another filter to only keep rank <= top_n
+            c.execute(base_query, params)
+            all_rows = c.fetchall()
+
+            # Assign rank per quiz_type_id, resetting on quiz_type change,
+            # same rank for ties on (score, duration).
+            rank = 0
+            prev_key = None
+            for row in all_rows:
+                key = (row['quiz_type_id'], row['score'], row['duration'])
+                if key != prev_key:
+                    rank += 1
+                row['rank'] = rank
+                prev_key = key
+                row['duration_formatted'] = format_duration(row['duration'])
+
             if top_n is not None:
-                top_n_params = params.copy()
-                count_query = f'''
-                    SELECT COUNT(*) AS cnt FROM (
-                        SELECT 1 FROM ({ranked_subquery}) AS ranked
-                        WHERE ranked.`rank` <= %s
-                    ) AS limited
-                '''
-                c.execute(count_query, top_n_params + [top_n])
-                total = c.fetchone()['cnt']
+                all_rows = [row for row in all_rows if row['rank'] <= top_n]
 
-                query = f'''
-                    SELECT * FROM ({ranked_subquery}) AS ranked
-                    WHERE ranked.`rank` <= %s
-                    ORDER BY ranked.quiz_type_name ASC, ranked.`rank` ASC, ranked.lotname ASC
-                    LIMIT %s OFFSET %s
-                '''
-                c.execute(query, params + [top_n, per_page, offset])
-            else:
-                c.execute(f'SELECT COUNT(*) AS cnt {tables} {where_clause}', params)
-                total = c.fetchone()['cnt']
+            # Final display order: by quiz type name, then rank, then team name
+            all_rows.sort(key=lambda r: (r['quiz_type_name'], r['rank'], r['lotname']))
 
-                query = f'''
-                    SELECT ranked.* FROM (
-                        SELECT
-                            r.id, r.student_id, r.quiz_type_id, r.score, r.duration,
-                            r.total_questions, r.completed_at,
-                            qt.name AS quiz_type_name,
-                            s.lotname,
-                            DENSE_RANK() OVER (
-                                PARTITION BY r.quiz_type_id
-                                ORDER BY r.score DESC, r.duration ASC, s.lotname ASC
-                            ) as `rank`
-                        {tables}
-                        {where_clause}
-                    ) AS ranked
-                    ORDER BY ranked.quiz_type_name ASC, ranked.`rank` ASC, ranked.lotname ASC
-                    LIMIT %s OFFSET %s
-                '''
-                c.execute(query, params + [per_page, offset])
-
-            results = c.fetchall()
-            for r in results:
-                r['duration_formatted'] = format_duration(r['duration'])
+            total = len(all_rows)
+            results = all_rows[offset:offset + per_page]
 
             total_pages = max(1, (total + per_page - 1) // per_page)
+
             return results, total, total_pages
-        
+
     @staticmethod
     def get_leaderboard(quiz_type_id=None, limit=5):
         with get_db() as (_, c):
-            base_query = '''
+            # Ranking logic: prioritize score (DESC), then duration (ASC).
+            #
+            # NOTE: We deliberately do NOT use MySQL session variables
+            # (@rank := ...) to compute the rank in SQL. That pattern reads
+            # and writes user variables within the same SELECT list, and
+            # MySQL does not guarantee left-to-right evaluation order for
+            # that - it "usually" works but can silently break depending on
+            # the query plan, join order, or indexes used, which is exactly
+            # what was causing the leaderboard cards to show stale/scrambled
+            # ranks even after adding CAST(... AS UNSIGNED).
+            #
+            # Instead: let SQL do what it's reliable at (sorting), and
+            # compute the rank in Python, where iteration order is
+            # guaranteed and there's no ambiguity.
+            query = '''
                 SELECT
-                    s.lotname, r.score, r.duration, qt.name AS quiz_type_name,
-                    r.quiz_type_id, r.total_questions,
-                    DENSE_RANK() OVER (ORDER BY r.score DESC, r.duration ASC, s.lotname ASC) as `rank`
+                    s.lotname,
+                    r.score,
+                    r.duration,
+                    qt.name AS quiz_type_name,
+                    r.quiz_type_id,
+                    r.total_questions
                 FROM results r
                 JOIN quiz_types qt ON qt.id = r.quiz_type_id
                 JOIN students s ON s.id = r.student_id
             '''
             params = []
             if quiz_type_id is not None:
-                base_query += ' WHERE r.quiz_type_id = %s'
+                query += ' WHERE r.quiz_type_id = %s'
                 params.append(quiz_type_id)
 
-            query = f'''
-                SELECT * FROM (
-                    {base_query}
-                ) AS ranked_results
-                ORDER BY `rank` ASC, lotname ASC
-                LIMIT %s
-            '''
-            params.append(limit)
+            query += ' ORDER BY r.quiz_type_id, r.score DESC, r.duration ASC, s.lotname ASC'
+
             c.execute(query, params)
-            rows = c.fetchall()
-            for row in rows:
+            all_rows = c.fetchall()
+
+            # Compute rank in Python: same rank for ties (same quiz_type,
+            # score, duration), increments otherwise, resets per quiz_type.
+            rank = 0
+            prev_key = None
+            for row in all_rows:
+                key = (row['quiz_type_id'], row['score'], row['duration'])
+                if key != prev_key:
+                    rank += 1
+                row['rank'] = rank
+                prev_key = key
                 row['duration_formatted'] = format_duration(row['duration'])
-            return rows
+
+            top_rows = [row for row in all_rows if row['rank'] <= limit]
+            top_rows.sort(key=lambda r: (r['rank'], r['lotname']))
+            return top_rows
 
     @staticmethod
     def export_word(quiz_type_id=None, top_n=5):
@@ -233,7 +252,7 @@ class ResultService:
             df.to_excel(writer, index=False, sheet_name='Results')
         output.seek(0)
         return output
-        
+
     @staticmethod
     def unset_announcement_state(quiz_type_id=None):
         """Cancel/reset a release without touching top_n."""
